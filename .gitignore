@@ -58,3 +58,7 @@ skills-lock.json
 # 静态风格预览(本地保留,正式页已取代)
 public/style-preview.html
 public/vendor/
+
+# playwright 本地工具产物
+.playwright-cli/
+output/

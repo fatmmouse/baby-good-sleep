@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import NightSky from "@/components/NightSky";
 import SleepAudio from "@/components/SleepAudio";
+import VoiceInput from "@/components/VoiceInput";
 
 export interface PrefItem {
   id: string;
@@ -55,9 +56,12 @@ export default function DashboardClient({
   }, []);
 
   useEffect(() => {
-    refreshEnv();
+    const initial = window.setTimeout(refreshEnv, 0);
     const id = setInterval(refreshEnv, 4000);
-    return () => clearInterval(id);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(id);
+    };
   }, [refreshEnv]);
 
   async function applyPref(id: string) {
@@ -154,6 +158,11 @@ export default function DashboardClient({
               </span>
             </button>
           ))}
+        </div>
+
+        {/* 语音指令 */}
+        <div className="mt-9">
+          <VoiceInput />
         </div>
 
         {/* 助眠声音 */}

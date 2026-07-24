@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
-type MoonPlacement = "corner" | "center" | "none";
+type MoonPlacement = "corner" | "sleep" | "none";
 
 const NOISE_GLSL = `
   vec3 hash33(vec3 p){ p=vec3(dot(p,vec3(127.1,311.7,74.7)),dot(p,vec3(269.5,183.3,246.1)),dot(p,vec3(113.5,271.9,124.6))); return fract(sin(p)*43758.5453123); }
@@ -22,7 +22,7 @@ const NOISE_GLSL = `
 
 /**
  * 月息夜景:程序化 3D 月球(无贴图,可离线)+ 眨眼星空 + 贴地萤火。
- * moon="corner" 用于欢迎页/仪表盘,"center" 用于睡眠中页(月亮做主角)。
+ * moon="corner" 用于欢迎页/仪表盘,"sleep" 用于睡眠中页(左上守望月)。
  */
 export default function NightSky({
   moon = "corner",
@@ -182,19 +182,48 @@ export default function NightSky({
 
     /* ---- 布局 / 视差 / 呼吸 ---- */
     function layout() {
-      const w = innerWidth, h = innerHeight;
+      const w = innerWidth;
+      const h = innerHeight;
       renderer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      if (moon === "center") {
-        moonMesh.position.set(0, 1.15, 0);
-        moonMesh.scale.setScalar(w < 640 ? 0.85 : 1.1);
-      } else if (w < 640) {
-        moonMesh.position.set(0.4, 2.6, 0);
-        moonMesh.scale.setScalar(0.72);
+
+      // 月球按视口比例放置，保证改变宽高比后仍留在各自的安全区。
+      const visibleHeight =
+        2 * camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      const visibleWidth = visibleHeight * camera.aspect;
+      const placeMoon = (
+        viewportX: number,
+        viewportY: number,
+        scale: number,
+      ) => {
+        moonMesh.position.set(
+          (viewportX - 0.5) * visibleWidth,
+          (0.5 - viewportY) * visibleHeight,
+          0,
+        );
+        moonMesh.scale.setScalar(scale);
+      };
+
+      if (moon === "sleep") {
+        // 睡眠中页:保留中等体量的视觉锚点，但与中央计时区完全分离。
+        if (w < 640) {
+          placeMoon(0.17, 0.18, 0.28);
+        } else if (w < 1024) {
+          placeMoon(0.18, 0.2, 0.4);
+        } else {
+          placeMoon(0.18, 0.2, 0.52);
+        }
+        return;
+      }
+
+      // 桌面端完整悬在右上安全区；窄屏只露出右上角一部分，始终避开正文。
+      if (w < 640) {
+        placeMoon(0.9, 0.15, 0.18);
+      } else if (w < 1024) {
+        placeMoon(0.9, 0.18, 0.24);
       } else {
-        moonMesh.position.set(3.1, 1.35, 0);
-        moonMesh.scale.setScalar(1);
+        placeMoon(0.92, 0.14, 0.48);
       }
     }
     layout();
@@ -209,7 +238,7 @@ export default function NightSky({
 
     const clock = new THREE.Clock();
     let raf = 0;
-    const lookAt = moon === "center" ? new THREE.Vector3(0, 0.6, 0) : new THREE.Vector3(0.8, 0.4, 0);
+    const lookAt = new THREE.Vector3(0, 0, 0);
 
     function frame() {
       const t = clock.getElapsedTime();
@@ -219,10 +248,13 @@ export default function NightSky({
       const breath = ph < 0.4
         ? 0.5 - 0.5 * Math.cos((ph / 0.4) * Math.PI)
         : 0.5 + 0.5 * Math.cos(((ph - 0.4) / 0.6) * Math.PI);
-      haloMat.uniforms.uPulse.value = 0.72 + 0.38 * breath;
+      haloMat.uniforms.uPulse.value =
+        moon === "sleep" ? 0.55 + 0.25 * breath : 0.72 + 0.38 * breath;
       moonMesh.rotation.y = t * 0.012;
-      camera.position.x += (px * 0.35 - camera.position.x) * 0.03;
-      camera.position.y += (-py * 0.22 - camera.position.y) * 0.03;
+      const parallaxX = moon === "sleep" ? 0.12 : 0.35;
+      const parallaxY = moon === "sleep" ? 0.08 : 0.22;
+      camera.position.x += (px * parallaxX - camera.position.x) * 0.03;
+      camera.position.y += (-py * parallaxY - camera.position.y) * 0.03;
       camera.lookAt(lookAt);
       renderer.render(scene, camera);
       if (!reduced) raf = requestAnimationFrame(frame);

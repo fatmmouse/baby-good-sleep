@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Static third-party bundles are not authored or type-checked by this app.
+    "public/vendor/**",
   ]),
 ]);
 

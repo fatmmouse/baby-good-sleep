@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js(App Router)+ TypeScript + Tailwind CSS v4 + lucide + Framer Motion + Three.js + Recharts + Prisma v6 + SQLite + StepFun API(OpenAI 兼容)。
 
-> **执行状态(2026-07-24)**:Task 1–6 已完成并验证(含偏差:shadcn 弃用改自研组件;Prisma 固定 v6;新增 Three.js「月息」夜景与 Web Audio 合成助眠声音;报告页已随 Task 5 一并建出)。**剩余:Task 7(语音指令,需 STEPFUN_API_KEY)、Task 8 的历史日历与偏好管理页、Task 9(种子数据 + 打磨)。**
+> **执行状态(2026-07-24)**:Task 1–9 已完成并验证(含偏差:shadcn 弃用改自研组件;Prisma 固定 v6;新增 Three.js「月息」夜景与 Web Audio 合成助眠声音;报告页已随 Task 5 一并建出)。Task 7 的六条快捷指令与无 Key 降级可直接使用;StepFun 自然语言路径已接好,配置 `STEPFUN_API_KEY` 后启用。
 
 ## Global Constraints
 

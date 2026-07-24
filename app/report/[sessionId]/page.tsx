@@ -25,7 +25,7 @@ export default async function ReportPage({
     : await summarizeSession(sessionId);
 
   const voices = await db.voiceCommand.findMany({
-    where: { sessionId },
+    where: { sessionId, userId: uid },
     orderBy: { createdAt: "asc" },
   });
 

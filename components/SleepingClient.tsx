@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 import NightSky from "@/components/NightSky";
+import VoiceInput from "@/components/VoiceInput";
 
 interface TickEnv {
   tempC: number;
@@ -95,10 +96,13 @@ export default function SleepingClient({
 
   return (
     <main className="relative flex min-h-screen flex-col items-center overflow-hidden">
-      <NightSky moon="center" fireflies={false} />
+      <NightSky moon="sleep" fireflies={false} />
 
       {/* 自动调节提示 */}
-      <div className="fixed left-1/2 top-8 z-20 flex w-full max-w-sm -translate-x-1/2 flex-col items-center gap-2 px-6">
+      <div
+        aria-live="polite"
+        className="fixed right-4 top-5 z-20 flex w-[54vw] min-w-[180px] max-w-sm flex-col items-end gap-2 sm:right-7 sm:top-7"
+      >
         <AnimatePresence>
           {notices.map((n) => (
             <motion.div
@@ -106,7 +110,7 @@ export default function SleepingClient({
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="glass rounded-full px-5 py-2.5 text-[12.5px] text-cream"
+              className="glass max-w-full rounded-full px-5 py-2.5 text-center text-[12.5px] text-cream"
             >
               {n.text}
             </motion.div>
@@ -114,21 +118,21 @@ export default function SleepingClient({
         </AnimatePresence>
       </div>
 
-      <div className="relative z-10 flex min-h-screen w-full max-w-xl flex-col items-center justify-end px-7 pb-14 pt-[46vh] text-center">
+      <div className="relative z-10 flex min-h-screen w-full max-w-xl flex-col items-center justify-end px-7 pb-14 pt-[46vh] text-center [@media(max-height:640px)]:pb-4 [@media(max-height:640px)]:pt-[39vh]">
         <p className="text-[12px] tracking-[0.34em] text-cream-dim">睡眠进行中 · {profileName}</p>
 
-        <div className="serif mt-4 text-[64px] font-semibold tracking-[0.06em] [font-variant-numeric:tabular-nums] [text-shadow:0_2px_40px_rgba(10,10,30,.7)] md:text-[76px]">
+        <div className="serif mt-4 text-[64px] font-semibold tracking-[0.06em] [font-variant-numeric:tabular-nums] [text-shadow:0_2px_40px_rgba(10,10,30,.7)] [@media(max-height:640px)]:mt-1 [@media(max-height:640px)]:text-[52px] md:text-[76px]">
           {elapsed}
         </div>
 
-        <p className="mt-2 text-[13px] tracking-[0.14em] text-cream-dim">
+        <p className="mt-2 text-[13px] tracking-[0.14em] text-cream-dim [@media(max-height:640px)]:mt-0">
           {env
             ? `${env.tempC.toFixed(1)}℃ · ${Math.round(env.humidityPct)}% · ${Math.round(env.lightLux)} lux`
             : "正在感知环境"}
         </p>
 
         {/* 温度细语(迷你曲线) */}
-        <div className="mt-8 h-16 w-full max-w-sm opacity-80">
+        <div className="mt-8 h-16 w-full max-w-sm opacity-80 [@media(max-height:640px)]:mt-3 [@media(max-height:640px)]:h-5">
           {series.length > 1 && (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={series} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
@@ -153,10 +157,14 @@ export default function SleepingClient({
           )}
         </div>
 
+        <div className="mt-7 w-full max-w-sm [@media(max-height:640px)]:mt-3">
+          <VoiceInput sessionId={sessionId} compact />
+        </div>
+
         <button
           onClick={endSleep}
           disabled={ending}
-          className="mt-10 w-full max-w-sm rounded-2xl border border-hair py-4 text-[14px] tracking-[0.5em] text-cream-dim transition-colors [text-indent:0.5em] hover:border-moon/40 hover:text-cream disabled:opacity-60"
+          className="mt-10 w-full max-w-sm rounded-2xl border border-hair py-4 text-[14px] tracking-[0.5em] text-cream-dim transition-colors [text-indent:0.5em] hover:border-moon/40 hover:text-cream disabled:opacity-60 [@media(max-height:640px)]:mt-4 [@media(max-height:640px)]:py-3"
         >
           {ending ? "正在整理本次睡眠" : "结 束 睡 眠"}
         </button>

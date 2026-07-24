@@ -17,6 +17,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "用户类型无效" }, { status: 400 });
   }
 
+  // 轻量账号的“登录”语义：昵称、模式（儿童再含年龄）一致时取回已有账号。
+  const existing = await db.user.findFirst({
+    where: {
+      nickname,
+      userType,
+      childAge: userType === "child" ? childAge : null,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  if (existing) {
+    await setUserCookie(existing.id);
+    return NextResponse.json({ userId: existing.id, existing: true });
+  }
+
   const user = await db.user.create({
     data: {
       nickname,

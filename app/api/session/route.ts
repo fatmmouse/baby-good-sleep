@@ -19,6 +19,14 @@ export async function POST(req: Request) {
     profileId = def.id;
   }
 
+  const profile = await db.preferenceProfile.findUnique({
+    where: { id: profileId },
+    select: { userId: true },
+  });
+  if (!profile || profile.userId !== uid) {
+    return NextResponse.json({ error: "睡眠方案不存在" }, { status: 404 });
+  }
+
   await db.sleepSession.updateMany({
     where: { userId: uid, status: "active" },
     data: { status: "ended", endedAt: new Date() },

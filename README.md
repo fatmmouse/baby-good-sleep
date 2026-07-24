@@ -8,10 +8,18 @@ AdventureX 黑客松作品:睡前一键布置卧室环境,睡眠中系统每 5 �
 ```bash
 npm install
 npx prisma migrate dev   # 初始化 SQLite(prisma/dev.db)
+npm run seed             # 写入小明 / 乐乐样板账号与历史记录
 npm run dev              # http://localhost:3000
 ```
 
-可选:语音自然语言解析需要在项目根 `.env` 添加 `STEPFUN_API_KEY=<你的 key>`(不加只影响该功能)。
+可选:语音自然语言解析需要在项目根 `.env` 添加 `STEPFUN_API_KEY=<你的 key>`。
+未配置时六条快捷指令仍可立即执行,其他说法会安全降级。模型默认
+`step-3.5-flash`,也可用服务器变量 `STEPFUN_MODEL` 覆盖。
+
+样板账号可从欢迎页直接取回:
+
+- 成人模式:昵称「小明」
+- 儿童模式:昵称「乐乐」,年龄 3
 
 ## 演示动线(评委版)
 

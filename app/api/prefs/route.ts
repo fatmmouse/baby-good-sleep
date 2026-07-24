@@ -2,6 +2,73 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getUserId } from "@/lib/session-cookie";
 
+interface PrefValues {
+  name: string;
+  tempMin: number;
+  tempMax: number;
+  humidityMin: number;
+  humidityMax: number;
+  lightBrightness: number;
+  lightColorTemp: string;
+}
+
+function finiteNumber(value: unknown, fallback: number) {
+  if (value === undefined || value === null || value === "") return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
+
+function parsePrefInput(
+  body: Record<string, unknown>,
+  fallback: PrefValues,
+): { data: PrefValues } | { error: string } {
+  const name =
+    typeof body.name === "string" && body.name.trim()
+      ? body.name.trim()
+      : fallback.name;
+  const tempMin = finiteNumber(body.tempMin, fallback.tempMin);
+  const tempMax = finiteNumber(body.tempMax, fallback.tempMax);
+  const humidityMin = finiteNumber(body.humidityMin, fallback.humidityMin);
+  const humidityMax = finiteNumber(body.humidityMax, fallback.humidityMax);
+  const rawBrightness = finiteNumber(body.lightBrightness, fallback.lightBrightness);
+  const lightBrightness = Math.round(rawBrightness);
+  const lightColorTemp =
+    body.lightColorTemp === undefined
+      ? fallback.lightColorTemp
+      : body.lightColorTemp === "warm" || body.lightColorTemp === "cool"
+        ? body.lightColorTemp
+        : "";
+
+  if (!name) return { error: "名称不能为空" };
+  if (
+    ![tempMin, tempMax, humidityMin, humidityMax, lightBrightness].every(Number.isFinite)
+  ) {
+    return { error: "方案参数必须是有效数字" };
+  }
+  if (tempMin < 12 || tempMax > 35 || tempMin >= tempMax) {
+    return { error: "温度范围需在 12–35℃ 之间，且最低值小于最高值" };
+  }
+  if (humidityMin < 20 || humidityMax > 90 || humidityMin >= humidityMax) {
+    return { error: "湿度范围需在 20–90% 之间，且最低值小于最高值" };
+  }
+  if (lightBrightness < 0 || lightBrightness > 100) {
+    return { error: "灯光亮度需在 0–100% 之间" };
+  }
+  if (!lightColorTemp) return { error: "灯光色温无效" };
+
+  return {
+    data: {
+      name,
+      tempMin,
+      tempMax,
+      humidityMin,
+      humidityMax,
+      lightBrightness,
+      lightColorTemp,
+    },
+  };
+}
+
 export async function GET() {
   const uid = await getUserId();
   if (!uid) return NextResponse.json({ error: "未登录" }, { status: 401 });
@@ -16,20 +83,24 @@ export async function GET() {
 export async function POST(req: Request) {
   const uid = await getUserId();
   if (!uid) return NextResponse.json({ error: "未登录" }, { status: 401 });
-  const b = await req.json().catch(() => ({}));
-  const name = typeof b?.name === "string" ? b.name.trim() : "";
-  if (!name) return NextResponse.json({ error: "名称不能为空" }, { status: 400 });
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const parsed = parsePrefInput(body, {
+    name: "",
+    tempMin: 22,
+    tempMax: 25,
+    humidityMin: 40,
+    humidityMax: 60,
+    lightBrightness: 15,
+    lightColorTemp: "warm",
+  });
+  if ("error" in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
 
   const pref = await db.preferenceProfile.create({
     data: {
       userId: uid,
-      name,
-      tempMin: Number(b.tempMin) || 22,
-      tempMax: Number(b.tempMax) || 25,
-      humidityMin: Number(b.humidityMin) || 40,
-      humidityMax: Number(b.humidityMax) || 60,
-      lightBrightness: Math.min(100, Math.max(0, Number(b.lightBrightness) || 15)),
-      lightColorTemp: b.lightColorTemp === "cool" ? "cool" : "warm",
+      ...parsed.data,
       isDefault: false,
     },
   });
@@ -39,26 +110,21 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const uid = await getUserId();
   if (!uid) return NextResponse.json({ error: "未登录" }, { status: 401 });
-  const b = await req.json().catch(() => ({}));
-  const existing = await db.preferenceProfile.findUnique({ where: { id: b?.id } });
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const id = typeof body.id === "string" ? body.id : "";
+  const existing = id
+    ? await db.preferenceProfile.findUnique({ where: { id } })
+    : null;
   if (!existing || existing.userId !== uid) {
     return NextResponse.json({ error: "方案不存在" }, { status: 404 });
   }
+  const parsed = parsePrefInput(body, existing);
+  if ("error" in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
   const pref = await db.preferenceProfile.update({
     where: { id: existing.id },
-    data: {
-      name: typeof b.name === "string" && b.name.trim() ? b.name.trim() : existing.name,
-      tempMin: Number.isFinite(Number(b.tempMin)) ? Number(b.tempMin) : existing.tempMin,
-      tempMax: Number.isFinite(Number(b.tempMax)) ? Number(b.tempMax) : existing.tempMax,
-      humidityMin: Number.isFinite(Number(b.humidityMin)) ? Number(b.humidityMin) : existing.humidityMin,
-      humidityMax: Number.isFinite(Number(b.humidityMax)) ? Number(b.humidityMax) : existing.humidityMax,
-      lightBrightness: Number.isFinite(Number(b.lightBrightness))
-        ? Math.min(100, Math.max(0, Number(b.lightBrightness)))
-        : existing.lightBrightness,
-      lightColorTemp: b.lightColorTemp === "cool" || b.lightColorTemp === "warm"
-        ? b.lightColorTemp
-        : existing.lightColorTemp,
-    },
+    data: parsed.data,
   });
   return NextResponse.json({ pref });
 }
