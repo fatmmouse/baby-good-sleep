@@ -96,7 +96,7 @@ export default function SleepingClient({
 
   return (
     <main className="relative flex min-h-screen flex-col items-center overflow-hidden">
-      <NightSky moon="sleep" fireflies={false} />
+      <NightSky />
 
       {/* 自动调节提示 */}
       <div
@@ -119,6 +119,7 @@ export default function SleepingClient({
       </div>
 
       <div className="relative z-10 flex min-h-screen w-full max-w-xl flex-col items-center justify-end px-7 pb-14 pt-[46vh] text-center [@media(max-height:640px)]:pb-4 [@media(max-height:640px)]:pt-[39vh]">
+        <div className="glass flex w-full flex-col items-center rounded-3xl px-6 py-8 [@media(max-height:640px)]:py-5">
         <p className="text-[12px] tracking-[0.34em] text-cream-dim">睡眠进行中 · {profileName}</p>
 
         <div className="serif mt-4 text-[64px] font-semibold tracking-[0.06em] [font-variant-numeric:tabular-nums] [text-shadow:0_2px_40px_rgba(10,10,30,.7)] [@media(max-height:640px)]:mt-1 [@media(max-height:640px)]:text-[52px] md:text-[76px]">
@@ -168,6 +169,7 @@ export default function SleepingClient({
         >
           {ending ? "正在整理本次睡眠" : "结 束 睡 眠"}
         </button>
+        </div>
       </div>
     </main>
   );

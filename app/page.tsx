@@ -45,13 +45,14 @@ export default function WelcomePage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden">
-      <NightSky moon="corner" />
+      <NightSky />
 
-      <div className="mx-auto flex min-h-screen w-full max-w-[460px] flex-col justify-center px-8 py-10 md:ml-[9vw]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[460px] flex-col justify-center px-6 py-10 md:ml-[9vw]">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
+          className="glass rounded-3xl p-7 md:p-9"
         >
           <div className="mb-16 flex items-center gap-2.5 text-[13px] tracking-[0.32em] text-cream-dim">
             <span className="moon-mark" />

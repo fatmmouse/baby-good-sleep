@@ -6,6 +6,7 @@ import {
   Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import NightSky from "@/components/NightSky";
+import TopNav from "@/components/TopNav";
 import type { SessionSummary } from "@/lib/report/summarize";
 
 interface VoiceRow {
@@ -79,10 +80,11 @@ export default function ReportClient({
   };
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden">
-      <NightSky moon="corner" fireflies={false} />
+    <main className="relative min-h-screen overflow-x-hidden px-5">
+      <NightSky />
+      <TopNav />
 
-      <div className="mx-auto w-full max-w-2xl px-7 pb-24 pt-12">
+      <div className="glass mx-auto mb-24 mt-28 w-full max-w-2xl rounded-3xl px-7 py-10 md:mt-32 md:px-10">
         <p className="text-[12px] tracking-[0.34em] text-cream-dim">睡眠报告 · {profileName}</p>
         <h1 className="serif mt-3 text-[34px] font-semibold tracking-[0.04em]">
           这一夜,睡了 {durationText}
@@ -206,7 +208,7 @@ export default function ReportClient({
             initial={{ opacity: 0, y: -14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="glass fixed left-1/2 top-6 z-30 -translate-x-1/2 rounded-full px-6 py-3 text-[13px] text-cream"
+            className="glass fixed left-1/2 top-24 z-50 -translate-x-1/2 rounded-full px-6 py-3 text-[13px] text-cream"
           >
             {toast}
           </motion.div>

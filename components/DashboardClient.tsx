@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import EnvGauge from "@/components/EnvGauge";
 import NightSky from "@/components/NightSky";
 import SleepAudio from "@/components/SleepAudio";
+import TopNav from "@/components/TopNav";
 import VoiceInput from "@/components/VoiceInput";
 
 export interface PrefItem {
@@ -100,43 +102,20 @@ export default function DashboardClient({
   }
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden">
-      <NightSky moon="corner" />
+    <main className="relative min-h-screen overflow-x-hidden px-5">
+      <NightSky />
+      <TopNav />
 
-      <div className="mx-auto w-full max-w-2xl px-7 pb-40 pt-10 md:pt-14">
-        {/* 顶栏 */}
-        <div className="mb-12 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 text-[12px] tracking-[0.3em] text-cream-dim">
-            <span className="moon-mark" />
-            宝宝爱睡觉
-          </div>
-          <div className="flex gap-5 text-[12.5px] text-cream-dim">
-            <a href="/history" className="transition-colors hover:text-cream">睡眠记录</a>
-            <a href="/preferences" className="transition-colors hover:text-cream">我的偏好</a>
-          </div>
-        </div>
-
+      <div className="glass mx-auto mb-32 mt-28 w-full max-w-2xl rounded-3xl px-7 py-10 md:mt-32 md:px-10">
         {/* 问候 */}
         <h1 className="serif text-[30px] font-semibold tracking-[0.04em]">晚上好,{nickname}</h1>
         <p className="mt-1.5 text-[12.5px] text-cream-dim">
           {userType === "child" ? "儿童模式" : "成人模式"} · 系统正在守护这间卧室
         </p>
 
-        {/* 实时环境:细线分栏 + 宋体数字 */}
-        <div className="mt-9 flex border-y border-hair">
-          {[
-            { label: "温度", value: env ? env.tempC.toFixed(1) : "--", unit: "℃" },
-            { label: "湿度", value: env ? Math.round(env.humidityPct) : "--", unit: "%" },
-            { label: "光照", value: env ? Math.round(env.lightLux) : "--", unit: "lux" },
-          ].map((s, i) => (
-            <div key={s.label} className={`flex-1 py-5 text-center ${i > 0 ? "border-l border-hair" : ""}`}>
-              <div className="serif text-[32px] tracking-[0.02em] [font-variant-numeric:tabular-nums]">
-                {s.value}
-                <span className="ml-1 text-[13px] text-cream-dim">{s.unit}</span>
-              </div>
-              <div className="mt-1 text-[11px] tracking-[0.28em] text-cream-dim">{s.label}</div>
-            </div>
-          ))}
+        {/* 实时环境:单圆仪表,下方切换 温度 / 湿度 / 光照 */}
+        <div className="mt-10">
+          <EnvGauge env={env} />
         </div>
 
         {/* 睡眠方案 */}
@@ -226,7 +205,7 @@ export default function DashboardClient({
             initial={{ opacity: 0, y: -14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -14 }}
-            className="glass fixed left-1/2 top-6 z-30 -translate-x-1/2 rounded-full px-6 py-3 text-[13px] text-cream"
+            className="glass fixed left-1/2 top-24 z-50 -translate-x-1/2 rounded-full px-6 py-3 text-[13px] text-cream"
           >
             {toast}
           </motion.div>

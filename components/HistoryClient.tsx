@@ -17,7 +17,6 @@ import {
 } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import {
-  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -25,6 +24,7 @@ import {
   MoonStar,
 } from "lucide-react";
 import NightSky from "@/components/NightSky";
+import TopNav from "@/components/TopNav";
 
 interface HistorySession {
   id: string;
@@ -115,30 +115,17 @@ export default function HistoryClient({
   );
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden">
-      <NightSky moon="corner" fireflies={false} />
+    <main className="relative min-h-screen overflow-x-hidden px-5">
+      <NightSky />
+      <TopNav />
 
-      <div className="relative z-10 mx-auto w-full max-w-4xl px-6 pb-24 pt-9 md:px-8 md:pt-12">
-        <header className="flex items-center justify-between">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-[12px] tracking-[0.18em] text-cream-dim transition-colors hover:text-cream"
-          >
-            <ArrowLeft size={15} strokeWidth={1.5} />
-            仪表盘
-          </Link>
-          <div className="flex items-center gap-2.5 text-[11px] tracking-[0.28em] text-cream-dim">
-            <span className="moon-mark scale-75" />
-            宝宝爱睡觉
-          </div>
-        </header>
-
+      <div className="glass relative z-10 mx-auto mb-24 mt-28 w-full max-w-4xl rounded-3xl px-6 py-10 md:mt-32 md:px-10">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: "easeOut" }}
         >
-          <p className="mt-14 text-[11px] tracking-[0.3em] text-cream-dim">睡眠记录 · {nickname}</p>
+          <p className="mt-6 text-[11px] tracking-[0.3em] text-cream-dim">睡眠记录 · {nickname}</p>
           <h1 className="serif mt-3 text-[36px] font-semibold tracking-[0.04em] md:text-[42px]">
             每一夜，都有迹可循。
           </h1>

@@ -26,17 +26,26 @@ body {
   color: var(--cream);
   font-family: "PingFang SC", "Microsoft YaHei", -apple-system, system-ui, sans-serif;
   min-height: 100vh;
-  background:
-    radial-gradient(120% 70% at 50% 112%, rgba(214, 140, 80, 0.2), transparent 55%),
-    radial-gradient(100% 60% at 78% -8%, rgba(90, 84, 150, 0.35), transparent 60%),
-    linear-gradient(180deg, var(--night-0) 0%, var(--night-1) 55%, var(--night-2) 100%);
-  background-attachment: fixed;
+  /* 星空照片由 NightSky 组件的固定图层承载(Safari 对 background-attachment:fixed + cover 渲染有缺陷);此处渐变仅作图片加载前的回退 */
+  background: linear-gradient(180deg, var(--night-0) 0%, var(--night-1) 55%, var(--night-2) 100%);
   -webkit-font-smoothing: antialiased;
 }
 
 /* 宋体承题:标题与关键数字 */
 .serif {
   font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+}
+
+/* 环境仪表光晕动效 */
+@keyframes gauge-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes gauge-breath {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.95; transform: scale(1.14); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gauge-anim { animation: none !important; }
 }
 
 /* 磨砂夜色面板 */

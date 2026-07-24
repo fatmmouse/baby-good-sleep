@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowLeft,
   Droplets,
   Lightbulb,
   Pencil,
@@ -14,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import NightSky from "@/components/NightSky";
+import TopNav from "@/components/TopNav";
 
 interface PrefItem {
   id: string;
@@ -148,29 +147,16 @@ export default function PreferencesClient({
   }
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden">
-      <NightSky moon="corner" fireflies={false} />
+    <main className="relative min-h-screen overflow-x-hidden px-5">
+      <NightSky />
+      <TopNav />
 
-      <div className="relative z-10 mx-auto w-full max-w-3xl px-6 pb-24 pt-9 md:px-8 md:pt-12">
-        <header className="flex items-center justify-between">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-[12px] tracking-[0.18em] text-cream-dim transition-colors hover:text-cream"
-          >
-            <ArrowLeft size={15} strokeWidth={1.5} />
-            仪表盘
-          </Link>
-          <div className="flex items-center gap-2.5 text-[11px] tracking-[0.28em] text-cream-dim">
-            <span className="moon-mark scale-75" />
-            宝宝爱睡觉
-          </div>
-        </header>
-
+      <div className="glass relative z-10 mx-auto mb-24 mt-28 w-full max-w-3xl rounded-3xl px-6 py-10 md:mt-32 md:px-10">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: "easeOut" }}
-          className="mt-14 flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between"
+          className="mt-6 flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between"
         >
           <div>
             <p className="text-[11px] tracking-[0.3em] text-cream-dim">我的偏好 · {nickname}</p>
@@ -383,7 +369,7 @@ export default function PreferencesClient({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             aria-live="polite"
-            className="glass fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-full px-5 py-3 text-[12px] text-cream"
+            className="glass fixed left-1/2 top-24 z-50 -translate-x-1/2 rounded-full px-5 py-3 text-[12px] text-cream"
           >
             {toast}
           </motion.div>
