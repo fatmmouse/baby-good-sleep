@@ -1,32 +1,83 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f8ff;
-  --foreground: #0f1b3d;
-  --brand: #3b6df6;
-  --brand-deep: #1b2a6b;
-  --brand-night: #0a1230;
-  --muted: #64748b;
-  --card: #ffffff;
-  --border: #e2e8f5;
+  /* 月息 · 暖夜配色 */
+  --night-0: #0a0c1e;
+  --night-1: #131539;
+  --night-2: #241f4b;
+  --cream: #f3ead8;      /* 月下暖白 */
+  --cream-dim: #b9ad95;  /* 暖灰 */
+  --moon: #f5dfae;       /* 月色,全站唯一暖亮色 */
+  --hair: rgba(243, 234, 216, 0.16);
+  --panel: rgba(16, 16, 40, 0.38);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-brand: var(--brand);
-  --color-brand-deep: var(--brand-deep);
-  --color-brand-night: var(--brand-night);
-  --color-muted: var(--muted);
-  --color-card: var(--card);
-  --color-border: var(--border);
-  --font-sans: var(--font-geist-sans);
+  --color-night-0: var(--night-0);
+  --color-night-1: var(--night-1);
+  --color-night-2: var(--night-2);
+  --color-cream: var(--cream);
+  --color-cream-dim: var(--cream-dim);
+  --color-moon: var(--moon);
+  --color-hair: var(--hair);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, "PingFang SC",
-    "Microsoft YaHei", sans-serif;
+  color: var(--cream);
+  font-family: "PingFang SC", "Microsoft YaHei", -apple-system, system-ui, sans-serif;
+  min-height: 100vh;
+  background:
+    radial-gradient(120% 70% at 50% 112%, rgba(214, 140, 80, 0.2), transparent 55%),
+    radial-gradient(100% 60% at 78% -8%, rgba(90, 84, 150, 0.35), transparent 60%),
+    linear-gradient(180deg, var(--night-0) 0%, var(--night-1) 55%, var(--night-2) 100%);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
+}
+
+/* 宋体承题:标题与关键数字 */
+.serif {
+  font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+}
+
+/* 磨砂夜色面板 */
+.glass {
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--hair);
+}
+
+/* 月色主按钮 */
+.btn-moon {
+  color: #241c0e;
+  background: linear-gradient(180deg, #f8e8c0, #eed9a4);
+  box-shadow: 0 6px 30px rgba(238, 217, 164, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: transform 0.2s;
+}
+.btn-moon:hover {
+  transform: translateY(-1px);
+}
+
+/* 弦月记号(logo) */
+.moon-mark {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  flex: none;
+}
+.moon-mark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--moon);
+  box-shadow: 0 0 10px rgba(245, 223, 174, 0.7);
+}
+.moon-mark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--night-1);
+  transform: translateX(-30%) scale(0.9);
 }

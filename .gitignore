@@ -54,3 +54,7 @@ prisma/dev.db
 .claude/skills/
 .windsurf/
 skills-lock.json
+
+# 静态风格预览(本地保留,正式页已取代)
+public/style-preview.html
+public/vendor/

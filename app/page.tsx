@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Moon, User, Baby } from "lucide-react";
+import NightSky from "@/components/NightSky";
 
 type UserType = "adult" | "child";
 
@@ -17,7 +17,7 @@ export default function WelcomePage() {
 
   async function start() {
     if (!nickname.trim()) {
-      setError("先给自己起个昵称吧");
+      setError("先给自己起个称呼吧");
       return;
     }
     setLoading(true);
@@ -34,113 +34,86 @@ export default function WelcomePage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "进入失败,请重试");
+        throw new Error(data.error || "进入失败,请再试一次");
       }
       router.push("/dashboard");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "进入失败,请重试");
+      setError(e instanceof Error ? e.message : "进入失败,请再试一次");
       setLoading(false);
     }
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(120%_120%_at_50%_0%,#1b2a6b_0%,#0a1230_60%,#060b20_100%)] text-white">
-      <div className="pointer-events-none absolute inset-0 opacity-40 [background:radial-gradient(60%_40%_at_70%_20%,rgba(59,109,246,0.35),transparent)]" />
-      <div className="relative mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6">
+    <main className="relative min-h-screen overflow-hidden">
+      <NightSky moon="corner" />
+
+      <div className="mx-auto flex min-h-screen w-full max-w-[460px] flex-col justify-center px-8 py-10 md:ml-[9vw]">
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="w-full"
+          transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 backdrop-blur">
-              <Moon className="h-7 w-7 text-blue-200" />
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight">宝宝爱睡觉</h1>
-            <p className="mt-2 text-sm text-blue-200/80">你的主动式睡眠搭子</p>
+          <div className="mb-16 flex items-center gap-2.5 text-[13px] tracking-[0.32em] text-cream-dim">
+            <span className="moon-mark" />
+            宝宝爱睡觉
           </div>
 
-          <div className="rounded-3xl bg-white/[0.06] p-6 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl">
-            <label className="mb-2 block text-xs text-blue-200/70">选择使用者</label>
-            <div className="mb-5 grid grid-cols-2 gap-3">
-              <TypeButton
-                active={userType === "adult"}
-                onClick={() => setUserType("adult")}
-                icon={<User className="h-5 w-5" />}
-                label="成人"
-              />
-              <TypeButton
-                active={userType === "child"}
-                onClick={() => setUserType("child")}
-                icon={<Baby className="h-5 w-5" />}
-                label="儿童"
-              />
-            </div>
+          <h1 className="serif text-[40px] font-semibold leading-[1.4] tracking-[0.04em] [text-shadow:0_2px_30px_rgba(10,10,30,.6)] md:text-[44px]">
+            今晚,
+            <br />
+            睡个好觉。
+          </h1>
+          <p className="mb-11 mt-3.5 text-[13.5px] tracking-[0.12em] text-cream-dim">
+            你的主动式睡眠搭子 · 陪你入夜
+          </p>
 
-            <label className="mb-2 block text-xs text-blue-200/70">昵称</label>
+          <div className="glass mb-3 flex overflow-hidden rounded-2xl">
+            {(["adult", "child"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setUserType(t)}
+                className={`flex-1 py-3.5 text-[13.5px] transition-all ${
+                  userType === t ? "bg-moon/15 text-cream" : "text-cream-dim hover:text-cream"
+                }`}
+              >
+                {t === "adult" ? "成人" : "儿童"}
+              </button>
+            ))}
+          </div>
+
+          <input
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && start()}
+            placeholder="怎么称呼你?"
+            className="glass mb-3 w-full rounded-2xl px-5 py-3.5 text-[13.5px] text-cream outline-none placeholder:text-cream-dim focus:border-moon/45"
+          />
+
+          {userType === "child" && (
             <input
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="怎么称呼你?"
-              className="mb-4 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none placeholder:text-white/30 focus:border-blue-400/60"
+              value={childAge}
+              onChange={(e) => setChildAge(e.target.value.replace(/\D/g, ""))}
+              inputMode="numeric"
+              placeholder="宝宝几岁了?"
+              className="glass mb-3 w-full rounded-2xl px-5 py-3.5 text-[13.5px] text-cream outline-none placeholder:text-cream-dim focus:border-moon/45"
             />
+          )}
 
-            {userType === "child" && (
-              <div className="mb-4">
-                <label className="mb-2 block text-xs text-blue-200/70">宝宝年龄(岁)</label>
-                <input
-                  value={childAge}
-                  onChange={(e) => setChildAge(e.target.value.replace(/\D/g, ""))}
-                  inputMode="numeric"
-                  placeholder="例如 3"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none placeholder:text-white/30 focus:border-blue-400/60"
-                />
-              </div>
-            )}
+          {error && <p className="mb-3 text-[13px] text-[#e8a598]">{error}</p>}
 
-            {error && <p className="mb-3 text-sm text-rose-300">{error}</p>}
+          <button
+            onClick={start}
+            disabled={loading}
+            className="btn-moon mt-3 w-full rounded-2xl py-4 text-[14.5px] font-semibold tracking-[0.55em] [text-indent:0.55em] disabled:opacity-70"
+          >
+            {loading ? "正在入夜" : "入 夜"}
+          </button>
 
-            <button
-              onClick={start}
-              disabled={loading}
-              className="w-full rounded-xl bg-blue-500 py-3 text-sm font-medium transition hover:bg-blue-400 disabled:opacity-60"
-            >
-              {loading ? "正在进入…" : "开始"}
-            </button>
-          </div>
-
-          <p className="mt-6 text-center text-xs text-blue-200/50">
-            无需注册,一键进入即可开始
+          <p className="mt-4 text-center text-[11.5px] tracking-[0.1em] text-cream-dim">
+            无需注册 · 一键进入
           </p>
         </motion.div>
       </div>
     </main>
-  );
-}
-
-function TypeButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex flex-col items-center gap-2 rounded-xl border py-4 text-sm transition ${
-        active
-          ? "border-blue-400/70 bg-blue-500/20 text-white"
-          : "border-white/10 bg-white/5 text-blue-200/70 hover:bg-white/10"
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
