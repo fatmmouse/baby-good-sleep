@@ -6,7 +6,9 @@
 
 **Architecture:** Next.js 全栈单体,API routes 即后端;业务层只依赖 `HardwareDriver` 接口,当前用 `SimDriver` 模拟、未来换 `RdkX5Driver` 不改上层;SQLite 本地库存全部数据;睡眠中前端每 5 秒调 `/api/tick`,后端读环境→比对偏好→自动调节→写日志。
 
-**Tech Stack:** Next.js(App Router)+ TypeScript + Tailwind CSS + shadcn/ui + lucide + Framer Motion + Recharts + Prisma + SQLite + StepFun API(OpenAI 兼容)。
+**Tech Stack:** Next.js(App Router)+ TypeScript + Tailwind CSS v4 + lucide + Framer Motion + Three.js + Recharts + Prisma v6 + SQLite + StepFun API(OpenAI 兼容)。
+
+> **执行状态(2026-07-24)**:Task 1–6 已完成并验证(含偏差:shadcn 弃用改自研组件;Prisma 固定 v6;新增 Three.js「月息」夜景与 Web Audio 合成助眠声音;报告页已随 Task 5 一并建出)。**剩余:Task 7(语音指令,需 STEPFUN_API_KEY)、Task 8 的历史日历与偏好管理页、Task 9(种子数据 + 打磨)。**
 
 ## Global Constraints
 

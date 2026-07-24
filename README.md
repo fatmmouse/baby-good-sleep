@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 宝宝爱睡觉 · 你的主动式睡眠搭子
 
-## Getting Started
+AdventureX 黑客松作品:睡前一键布置卧室环境,睡眠中系统每 5 秒自动巡检温湿度与光照、
+偏离偏好即自动调节,醒来生成完整睡眠报告。硬件层当前为模拟器,接口已为 RDK X5 预留。
 
-First, run the development server:
+## 快速开始
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npx prisma migrate dev   # 初始化 SQLite(prisma/dev.db)
+npm run dev              # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+可选:语音自然语言解析需要在项目根 `.env` 添加 `STEPFUN_API_KEY=<你的 key>`(不加只影响该功能)。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 演示动线(评委版)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. 欢迎页选身份、输昵称,「入夜」一键进入(自动预置 4 套睡眠方案)
+2. 仪表盘右下角「演示」面板,把温度拉到 15℃(模拟环境突变)
+3. 「开始睡眠」→ 数秒内看系统自动弹出「检测到偏冷,已升温至 23.5℃」,温度曲线回升
+4. 「结束睡眠」→ 查看睡眠报告(时长、调节次数、温湿度曲线、睡眠分期)
 
-## Learn More
+## 验证
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run test      # 模拟器 + 自动调节判断的单元测试
+npx tsc --noEmit  # 类型检查
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 文档
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 设计 spec(权威):`docs/superpowers/specs/2026-07-24-baby-good-sleep-design.md`
+- 实现计划与执行状态:`docs/superpowers/plans/2026-07-24-baby-good-sleep.md`
+- AI 协作约定:`AGENTS.md`

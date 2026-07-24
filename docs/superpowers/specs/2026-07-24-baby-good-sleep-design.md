@@ -28,13 +28,15 @@
 | 数据库 | SQLite 本地文件 | demo 无需云库,零配置、随项目走 |
 | 戒指睡眠分期 | 作为模拟数据存进 session 汇总 | 丰富报告页,不引入真硬件依赖 |
 | UI 风格 | 蓝色系高级感,克制,**不堆 emoji** | 高级感靠留白/层次/线性图标/克制动效 |
+| 视觉方向(2026-07-24 定稿) | 「月息」暖夜:Three.js 呼吸月球 + 眨眼星空 + 贴地萤火,宋体承题,全站唯月独暖 | 用户否掉模板化方案后共创确定;产品是陪伴型,温暖为主、科技感不得压过温暖 |
 
 ## 3. 技术栈
 
 - **框架**:Next.js(App Router)+ TypeScript,前后端同一项目(API routes 即后端)
-- **UI**:Tailwind CSS + shadcn/ui + lucide 图标 + Framer Motion(动效)
+- **UI**:Tailwind CSS(v4)+ lucide 图标 + Framer Motion(动效)。原计划的 shadcn/ui 因与 Tailwind v4 + Next 16 兼容摩擦弃用,组件自研
+- **3D 场景**:Three.js 程序化月夜背景(着色器生成月球/星空/萤火,无贴图、可离线),见 components/NightSky.tsx
 - **图表**:Recharts
-- **数据库**:SQLite 本地文件(通过 Prisma 访问 —— 文档全、类型安全、AI 搭建可靠)
+- **数据库**:SQLite 本地文件,Prisma **固定 v6**(v7 移除 schema 内 datasource url,breaking)
 - **LLM**:StepFun API(OpenAI 兼容),key 放服务器环境变量,不进前端/代码
 - **运行**:普通 Node 服务(`next start`),可跑在笔记本或 RDK X5 的 ARM Linux
 
