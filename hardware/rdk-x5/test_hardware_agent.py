@@ -40,6 +40,7 @@ class FakeGPIO:
         self.mode = None
         self.outputs = []
         self.pwms = {}
+        self.output_values = []
 
     def setwarnings(self, _enabled):
         pass
@@ -55,13 +56,25 @@ class FakeGPIO:
         self.pwms[pin] = pwm
         return pwm
 
+    def output(self, pin, value):
+        self.output_values.append((pin, value))
+
     def cleanup(self):
         pass
 
 
 class HardwareControllerTest(unittest.TestCase):
     def make_controller(self, sensor_reader=lambda: SENSOR_READING):
-        return HardwareController(FakeGPIO(), sensor_reader)
+        controller = HardwareController(FakeGPIO(), sensor_reader)
+        self.addCleanup(controller.close)
+        return controller
+
+    def test_uses_software_pwm_for_gpio_only_pins(self):
+        gpio = FakeGPIO()
+        controller = HardwareController(gpio, lambda: SENSOR_READING)
+        self.addCleanup(controller.close)
+
+        self.assertEqual(gpio.pwms, {})
 
     def test_warm_light_uses_yellow_and_red_only(self):
         controller = self.make_controller()

@@ -5,12 +5,13 @@ import math
 import socketserver
 import subprocess
 import threading
+import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
 PIN_BY_COLOR = {"white": 13, "yellow": 15, "blue": 18, "red": 22}
-PWM_FREQUENCY_HZ = 1000
+SOFTWARE_PWM_HZ = 100
 
 
 class SensorUnavailableError(RuntimeError):
@@ -40,6 +41,67 @@ def light_channels(on, brightness, color_temp):
     }
 
 
+class SoftwarePwmBank:
+    def __init__(self, gpio_module, pin_by_color, frequency_hz=SOFTWARE_PWM_HZ):
+        self._gpio = gpio_module
+        self._pin_by_color = dict(pin_by_color)
+        self._period = 1.0 / frequency_hz
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._closed = False
+        self._duties = dict.fromkeys(self._pin_by_color, 0.0)
+
+        for pin in self._pin_by_color.values():
+            self._gpio.setup(pin, self._gpio.OUT, initial=0)
+
+        self._thread = threading.Thread(
+            target=self._run,
+            name="sleep-light-software-pwm",
+            daemon=True,
+        )
+        self._thread.start()
+
+    def set_duty_cycles(self, duties):
+        with self._lock:
+            self._duties = {
+                color: min(100.0, max(0.0, float(duties.get(color, 0.0))))
+                for color in self._pin_by_color
+            }
+
+    def close(self):
+        if self._closed:
+            return
+        self._closed = True
+        self._stop.set()
+        self._thread.join(timeout=1)
+        for pin in self._pin_by_color.values():
+            self._gpio.output(pin, 0)
+
+    def _run(self):
+        while not self._stop.is_set():
+            cycle_start = time.monotonic()
+            with self._lock:
+                duties = dict(self._duties)
+
+            off_events = {}
+            for color, pin in self._pin_by_color.items():
+                duty = duties[color]
+                self._gpio.output(pin, 1 if duty > 0 else 0)
+                if 0 < duty < 100:
+                    off_events.setdefault(self._period * duty / 100.0, []).append(pin)
+
+            for offset, pins in sorted(off_events.items()):
+                remaining = cycle_start + offset - time.monotonic()
+                if remaining > 0 and self._stop.wait(remaining):
+                    break
+                for pin in pins:
+                    self._gpio.output(pin, 0)
+
+            remaining = cycle_start + self._period - time.monotonic()
+            if remaining > 0:
+                self._stop.wait(remaining)
+
+
 class HardwareController:
     def __init__(self, gpio_module, sensor_reader):
         self._gpio = gpio_module
@@ -56,12 +118,7 @@ class HardwareController:
 
         self._gpio.setwarnings(False)
         self._gpio.setmode(self._gpio.BOARD)
-        self._pwms = {}
-        for color, pin in PIN_BY_COLOR.items():
-            self._gpio.setup(pin, self._gpio.OUT, initial=0)
-            pwm = self._gpio.PWM(pin, PWM_FREQUENCY_HZ)
-            pwm.start(0)
-            self._pwms[color] = pwm
+        self._pwm_bank = SoftwarePwmBank(self._gpio, PIN_BY_COLOR)
 
     def set_light(self, on, brightness, color_temp="warm"):
         if not isinstance(on, bool):
@@ -74,8 +131,7 @@ class HardwareController:
         level = min(100.0, max(0.0, float(brightness))) if on else 0.0
         channels = light_channels(on, level, color_temp)
         with self._lock:
-            for color, duty_cycle in channels.items():
-                self._pwms[color].ChangeDutyCycle(duty_cycle)
+            self._pwm_bank.set_duty_cycles(channels)
             self._light = {
                 "on": on and level > 0,
                 "brightness": level,
@@ -126,9 +182,7 @@ class HardwareController:
 
     def close(self):
         with self._lock:
-            for pwm in self._pwms.values():
-                pwm.ChangeDutyCycle(0)
-                pwm.stop()
+            self._pwm_bank.close()
             self._gpio.cleanup()
 
 
