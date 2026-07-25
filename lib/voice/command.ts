@@ -47,12 +47,12 @@ export function validateParsedCommand(value: unknown): ParsedCommand {
     if (!hasOnlyKeys(params, ["on", "brightness", "colorTemp"])) {
       throw new Error("灯光参数无效");
     }
-    if (
-      typeof params.on !== "boolean" ||
-      !finiteNumber(params.brightness) ||
-      params.brightness < 0 ||
-      params.brightness > 100
-    ) {
+    if (typeof params.on !== "boolean") {
+      throw new Error("灯光参数越界");
+    }
+    const brightness =
+      params.brightness === undefined ? (params.on ? 18 : 0) : params.brightness;
+    if (!finiteNumber(brightness) || brightness < 0 || brightness > 100) {
       throw new Error("灯光参数越界");
     }
     if (
@@ -66,7 +66,7 @@ export function validateParsedCommand(value: unknown): ParsedCommand {
       action: "setLight",
       params: {
         on: params.on,
-        brightness: Math.round(params.brightness),
+        brightness: Math.round(brightness),
         ...(params.colorTemp ? { colorTemp: params.colorTemp } : {}),
       },
     };

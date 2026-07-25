@@ -10,6 +10,15 @@ export const VOICE_CAPABILITIES = [
   "stopAudio: params {}",
 ] as const;
 
+const DEFAULT_STEPFUN_TIMEOUT_MS = 8_000;
+
+function stepfunTimeoutMs(): number {
+  const configured = Number(process.env.STEPFUN_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured >= 1_000 && configured <= 30_000
+    ? configured
+    : DEFAULT_STEPFUN_TIMEOUT_MS;
+}
+
 export class StepFunError extends Error {
   constructor(
     public readonly code:
@@ -34,7 +43,7 @@ export async function parseWithStepfun(
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 2_000);
+  const timeout = setTimeout(() => controller.abort(), stepfunTimeoutMs());
 
   try {
     const response = await fetch("https://api.stepfun.com/v1/chat/completions", {
@@ -56,6 +65,7 @@ export async function parseWithStepfun(
               "只输出 JSON 对象 {\"action\":\"...\",\"params\":{...}}。",
               "action 与参数必须严格从以下服务端能力中选择，不得创造新动作：",
               ...capabilities,
+              "setLight 开灯必须给 brightness；柔和、温馨或夜间场景使用 18，普通开灯使用 30，关灯使用 0。",
               "无法确定时也不要解释，只输出最接近且安全的动作。",
             ].join("\n"),
           },
