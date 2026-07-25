@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Keyboard, Mic, Mic2, Send } from "lucide-react";
 import { voiceSourceLabel } from "@/lib/voice/presentation";
@@ -26,6 +26,18 @@ function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
   return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as (new () => SpeechRecognitionLike) | null;
 }
 
+function subscribeSpeechRecognition() {
+  return () => undefined;
+}
+
+function getSpeechRecognitionSnapshot() {
+  return getSpeechRecognition() !== null;
+}
+
+function getServerSpeechRecognitionSnapshot() {
+  return false;
+}
+
 /**
  * 圆形语音按键 + 按需展开的文字输入。
  * compact(睡眠页)不显示快捷指令词条;仪表盘显示。
@@ -43,13 +55,14 @@ export default function VoiceInput({
   const [sourceLabel, setSourceLabel] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
   const [textMode, setTextMode] = useState(false);
-  const [speechOk, setSpeechOk] = useState(false);
+  const speechOk = useSyncExternalStore(
+    subscribeSpeechRecognition,
+    getSpeechRecognitionSnapshot,
+    getServerSpeechRecognitionSnapshot,
+  );
   const recRef = useRef<SpeechRecognitionLike | null>(null);
 
-  useEffect(() => {
-    setSpeechOk(getSpeechRecognition() !== null);
-    return () => recRef.current?.abort();
-  }, []);
+  useEffect(() => () => recRef.current?.abort(), []);
 
   async function submit(event?: FormEvent, commandText = text) {
     event?.preventDefault();
