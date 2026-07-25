@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Keyboard, Mic, Mic2, Send } from "lucide-react";
+import { voiceSourceLabel } from "@/lib/voice/presentation";
 
 const QUICK_COMMANDS = ["关灯", "开夜灯", "调高温度"];
 
@@ -39,6 +40,7 @@ export default function VoiceInput({
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
+  const [sourceLabel, setSourceLabel] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
   const [textMode, setTextMode] = useState(false);
   const [speechOk, setSpeechOk] = useState(false);
@@ -56,6 +58,7 @@ export default function VoiceInput({
 
     setPending(true);
     setMessage("");
+    setSourceLabel(null);
     try {
       const response = await fetch("/api/voice/parse", {
         method: "POST",
@@ -64,9 +67,11 @@ export default function VoiceInput({
       });
       const data = await response.json().catch(() => ({}));
       setMessage(response.ok ? data.message : data.error || "指令未成功，请再试一次");
+      setSourceLabel(response.ok ? voiceSourceLabel(data) : null);
       if (response.ok) setText("");
     } catch {
       setMessage("连接不稳定，请再试一次");
+      setSourceLabel(null);
     } finally {
       setPending(false);
     }
@@ -81,6 +86,7 @@ export default function VoiceInput({
     if (!SR) {
       setTextMode(true);
       setMessage("当前浏览器不支持语音识别，可直接输入文字");
+      setSourceLabel(null);
       return;
     }
     const rec = new SR();
@@ -95,9 +101,11 @@ export default function VoiceInput({
     rec.onerror = () => {
       setListening(false);
       setMessage("没有听清，再试一次");
+      setSourceLabel(null);
     };
     recRef.current = rec;
     setMessage("");
+    setSourceLabel(null);
     setListening(true);
     rec.start();
   }
@@ -131,13 +139,21 @@ export default function VoiceInput({
         <Mic size={26} strokeWidth={1.5} />
       </button>
 
-      <p aria-live="polite" className="mt-3.5 min-h-5 text-center text-[11.5px] leading-5 text-cream-dim">
-        {listening
-          ? "正在聆听，说出你的指令"
-          : pending
-            ? "正在执行"
-            : message || (speechOk ? "点击说话" : "点击展开文字输入")}
-      </p>
+      <div aria-live="polite" className="mt-3.5 min-h-[42px] text-center">
+        {sourceLabel && !listening && !pending && (
+          <p className="mb-0.5 flex items-center justify-center gap-1.5 text-[10px] text-moon/80">
+            <span className="h-1 w-1 rounded-full bg-moon/70" aria-hidden />
+            {sourceLabel}
+          </p>
+        )}
+        <p className="text-[11.5px] leading-5 text-cream-dim">
+          {listening
+            ? "正在聆听，再次点击可停止"
+            : pending
+              ? "正在执行"
+              : message || (speechOk ? "单击开始说话" : "点击展开文字输入")}
+        </p>
+      </div>
 
       {!compact && (
         <div className="mt-3 flex flex-wrap justify-center gap-2">
