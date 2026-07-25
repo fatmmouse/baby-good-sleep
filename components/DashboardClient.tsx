@@ -25,6 +25,13 @@ interface EnvState {
   tempC: number;
   humidityPct: number;
   lightLux: number;
+  stale?: boolean;
+  lightSource?: "measured" | "estimated" | "simulated";
+}
+
+interface HardwareHealth {
+  ok: boolean;
+  driver: "sim" | "rdk-x5";
 }
 
 export default function DashboardClient({
@@ -38,6 +45,7 @@ export default function DashboardClient({
 }) {
   const router = useRouter();
   const [env, setEnv] = useState<EnvState | null>(null);
+  const [hardwareHealth, setHardwareHealth] = useState<HardwareHealth | null>(null);
   const [activePref, setActivePref] = useState(prefs.find((p) => p.isDefault)?.id ?? prefs[0]?.id);
   const [toast, setToast] = useState("");
   const [starting, setStarting] = useState(false);
@@ -55,7 +63,11 @@ export default function DashboardClient({
   const refreshEnv = useCallback(async () => {
     try {
       const res = await fetch("/api/env");
-      if (res.ok) setEnv((await res.json()).env);
+      if (res.ok) {
+        const data = await res.json();
+        setEnv(data.env);
+        setHardwareHealth(data.health);
+      }
     } catch {}
   }, []);
 
@@ -114,6 +126,20 @@ export default function DashboardClient({
         <p className="mt-1.5 text-[12.5px] text-cream-dim">
           {userType === "child" ? "儿童模式" : "成人模式"} · 系统正在守护这间卧室
         </p>
+        {hardwareHealth && (
+          <p
+            aria-live="polite"
+            className={`mt-2 text-[11.5px] ${hardwareHealth.ok ? "text-cream-dim" : "text-[#efb0a8]"}`}
+          >
+            {hardwareHealth.driver === "sim"
+              ? "模拟环境"
+              : hardwareHealth.ok
+                ? "RDK X5 实机在线"
+                : "RDK X5 硬件离线"}
+            {env?.stale ? " · 正在显示最后有效读数" : ""}
+            {env?.lightSource === "estimated" ? " · 光照为灯态估算" : ""}
+          </p>
+        )}
 
         {/* 实时环境:单圆仪表,下方切换 温度 / 湿度 / 光照 */}
         <div className="mt-10">
@@ -198,6 +224,7 @@ export default function DashboardClient({
       </div>
 
       {/* 演示造场面板 */}
+      {hardwareHealth?.driver === "sim" && (
       <div className="fixed bottom-5 right-5 z-20">
         <AnimatePresence>
           {demoOpen && (
@@ -231,6 +258,7 @@ export default function DashboardClient({
           {demoOpen ? "收起" : "演示"}
         </button>
       </div>
+      )}
 
       {/* 轻提示 */}
       <AnimatePresence>

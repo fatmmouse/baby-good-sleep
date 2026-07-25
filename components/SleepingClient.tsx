@@ -10,6 +10,8 @@ interface TickEnv {
   tempC: number;
   humidityPct: number;
   lightLux: number;
+  stale?: boolean;
+  lightSource?: "measured" | "estimated" | "simulated";
 }
 
 export default function SleepingClient({
@@ -66,7 +68,7 @@ export default function SleepingClient({
         for (const msg of data.messages ?? []) pushNotice(msg);
       } catch {
         failCount.current++;
-        if (failCount.current === 3) pushNotice("连接不稳定,正在重试");
+        if (failCount.current === 3) pushNotice("硬件连接中断,正在重试");
       }
     }
     tick();
@@ -125,7 +127,7 @@ export default function SleepingClient({
 
         <p className="mt-2 text-[13px] tracking-[0.14em] text-cream-dim [@media(max-height:640px)]:mt-0">
           {env
-            ? `${env.tempC.toFixed(1)}℃ · ${Math.round(env.humidityPct)}% · ${Math.round(env.lightLux)} lux`
+            ? `${env.tempC.toFixed(1)}℃ · ${Math.round(env.humidityPct)}% · ${Math.round(env.lightLux)} lux${env.lightSource === "estimated" ? "（估算）" : ""}${env.stale ? " · 上次有效读数" : ""}`
             : "正在感知环境"}
         </p>
 
