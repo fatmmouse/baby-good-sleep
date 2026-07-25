@@ -41,6 +41,8 @@ npx tsc --noEmit  # 类型检查
 GitHub Pages。推荐使用 Railway：GitHub 负责多人协作与版本管理，Railway
 监听 `master` 分支并自动部署通过 CI 的提交。
 
+生产地址：<https://baby-good-sleep-production.up.railway.app>
+
 首次配置：
 
 1. 在 Railway 选择 `Deploy from GitHub repo`，连接本仓库。
