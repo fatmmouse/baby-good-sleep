@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Music2 } from "lucide-react";
 
 /**
  * 程序化助眠声音:Web Audio 实时合成,无音频文件、可离线。
+ * 呈现为顶部导航右侧的圆形按钮 + 下拉选曲菜单;播放中按钮亮月色。
  * 成人:白噪 / 海浪 / 冥想钟磬;儿童:摇篮轻音 / 白噪(spec:儿童剔除冥想)。
  */
 type TrackId = "noise" | "waves" | "bell" | "lullaby";
@@ -15,6 +18,17 @@ const TRACKS: Record<TrackId, { name: string; note: string }> = {
   lullaby: { name: "摇篮轻音", note: "柔和的和声" },
 };
 
+/* 与 TopNav 胶囊同一套壳样式与尺寸(弦月位 BTN + 16) */
+const BTN_SIZE = 68;
+const shellStyle: React.CSSProperties = {
+  borderRadius: 999,
+  border: "1px solid var(--hair)",
+  background: "rgba(14, 15, 36, 0.55)",
+  boxShadow: "0 10px 40px rgba(0,0,0,0.35)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+};
+
 function makeNoiseBuffer(ctx: AudioContext) {
   const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
   const data = buf.getChannelData(0);
@@ -22,8 +36,10 @@ function makeNoiseBuffer(ctx: AudioContext) {
   return buf;
 }
 
-export default function SleepAudio({ userType }: { userType: "adult" | "child" }) {
+export default function SleepAudio({ userType = "adult" }: { userType?: "adult" | "child" }) {
+  const [open, setOpen] = useState(false);
   const [playing, setPlaying] = useState<TrackId | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const ctxRef = useRef<AudioContext | null>(null);
   const nodesRef = useRef<AudioNode[]>([]);
 
@@ -42,6 +58,16 @@ export default function SleepAudio({ userType }: { userType: "adult" | "child" }
   }
 
   useEffect(() => () => { stop(); ctxRef.current?.close(); }, []);
+
+  /* 点击菜单外部收起 */
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    addEventListener("pointerdown", onDown);
+    return () => removeEventListener("pointerdown", onDown);
+  }, [open]);
 
   function play(id: TrackId) {
     if (playing === id) return stop();
@@ -118,24 +144,63 @@ export default function SleepAudio({ userType }: { userType: "adult" | "child" }
   }
 
   return (
-    <div>
-      <p className="mb-3 text-[11px] tracking-[0.28em] text-cream-dim">助眠声音</p>
-      <div className="flex flex-wrap gap-2.5">
-        {available.map((id) => (
-          <button
-            key={id}
-            onClick={() => play(id)}
-            className={`rounded-full border px-5 py-2.5 text-[12.5px] transition-all ${
-              playing === id
-                ? "border-moon/60 bg-moon/15 text-moon"
-                : "border-hair text-cream-dim hover:border-moon/40 hover:text-cream"
-            }`}
+    <div ref={rootRef} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="助眠声音"
+        title="助眠声音"
+        aria-expanded={open}
+        className={playing ? "text-moon" : "text-cream-dim hover:text-cream"}
+        style={{
+          ...shellStyle,
+          width: BTN_SIZE,
+          height: BTN_SIZE,
+          display: "grid",
+          placeItems: "center",
+          cursor: "pointer",
+          transition: "color 0.2s",
+        }}
+      >
+        <Music2 size={23} strokeWidth={1.5} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            style={{
+              ...shellStyle,
+              borderRadius: 18,
+              position: "absolute",
+              right: 0,
+              top: BTN_SIZE + 10,
+              width: 244,
+              padding: 8,
+            }}
           >
-            {TRACKS[id].name}
-            <span className="ml-2 opacity-60">{playing === id ? "播放中" : TRACKS[id].note}</span>
-          </button>
-        ))}
-      </div>
+            <p className="px-3 pb-1.5 pt-2 text-[10.5px] tracking-[0.28em] text-cream-dim">
+              助眠声音
+            </p>
+            {available.map((id) => (
+              <button
+                key={id}
+                onClick={() => play(id)}
+                className={`flex w-full items-baseline justify-between rounded-xl px-3 py-2.5 text-left text-[13px] transition-colors ${
+                  playing === id ? "bg-moon/15 text-moon" : "text-cream hover:bg-white/[0.06]"
+                }`}
+              >
+                <span>{TRACKS[id].name}</span>
+                <span className={`ml-3 text-[11px] ${playing === id ? "text-moon" : "text-cream-dim"}`}>
+                  {playing === id ? "播放中" : TRACKS[id].note}
+                </span>
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

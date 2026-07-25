@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 import NightSky from "@/components/NightSky";
 import VoiceInput from "@/components/VoiceInput";
 
@@ -25,7 +24,6 @@ export default function SleepingClient({
   const router = useRouter();
   const [elapsed, setElapsed] = useState("00:00:00");
   const [env, setEnv] = useState<TickEnv | null>(null);
-  const [series, setSeries] = useState<{ t: number; tempC: number }[]>([]);
   const [notices, setNotices] = useState<{ id: number; text: string }[]>([]);
   const [ending, setEnding] = useState(false);
   const failCount = useRef(0);
@@ -65,7 +63,6 @@ export default function SleepingClient({
         if (stopped) return;
         failCount.current = 0;
         setEnv(data.env);
-        setSeries((s) => [...s.slice(-59), { t: Date.now(), tempC: data.env.tempC }]);
         for (const msg of data.messages ?? []) pushNotice(msg);
       } catch {
         failCount.current++;
@@ -118,7 +115,7 @@ export default function SleepingClient({
         </AnimatePresence>
       </div>
 
-      <div className="relative z-10 flex min-h-screen w-full max-w-xl flex-col items-center justify-end px-7 pb-14 pt-[46vh] text-center [@media(max-height:640px)]:pb-4 [@media(max-height:640px)]:pt-[39vh]">
+      <div className="relative z-10 flex min-h-screen w-full max-w-xl flex-col items-center justify-center px-7 py-12 text-center [@media(max-height:640px)]:py-5">
         <div className="glass flex w-full flex-col items-center rounded-3xl px-6 py-8 [@media(max-height:640px)]:py-5">
         <p className="text-[12px] tracking-[0.34em] text-cream-dim">睡眠进行中 · {profileName}</p>
 
@@ -132,33 +129,7 @@ export default function SleepingClient({
             : "正在感知环境"}
         </p>
 
-        {/* 温度细语(迷你曲线) */}
-        <div className="mt-8 h-16 w-full max-w-sm opacity-80 [@media(max-height:640px)]:mt-3 [@media(max-height:640px)]:h-5">
-          {series.length > 1 && (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={series} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="tempFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#f5dfae" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#f5dfae" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <YAxis domain={["dataMin - 0.5", "dataMax + 0.5"]} hide />
-                <Area
-                  type="monotone"
-                  dataKey="tempC"
-                  stroke="#f5dfae"
-                  strokeWidth={1.5}
-                  fill="url(#tempFill)"
-                  isAnimationActive={false}
-                  dot={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        <div className="mt-7 w-full max-w-sm [@media(max-height:640px)]:mt-3">
+        <div className="mt-9 w-full max-w-sm [@media(max-height:640px)]:mt-4">
           <VoiceInput sessionId={sessionId} compact />
         </div>
 

@@ -47,7 +47,7 @@ export default function WelcomePage() {
     <main className="relative min-h-screen overflow-hidden">
       <NightSky />
 
-      <div className="mx-auto flex min-h-screen w-full max-w-[460px] flex-col justify-center px-6 py-10 md:ml-[9vw]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[460px] flex-col justify-center px-6 py-10">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}

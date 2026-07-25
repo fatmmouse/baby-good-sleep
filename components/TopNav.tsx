@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, House, SlidersHorizontal } from "lucide-react";
+import SleepAudio from "@/components/SleepAudio";
 
 /**
  * 功能页统一顶部导航:悬浮居中的胶囊长条,圆形图标按钮,当前板块圆底高亮。
  * 仪表盘 / 睡眠记录 / 我的偏好;报告页归属「睡眠记录」高亮。
- * 右侧独立圆形为弦月品牌记号,同样回到仪表盘。
+ * 右侧独立圆形为助眠声音入口(音乐图标,下拉选曲)。
  * 关键尺寸用内联样式锁定,避免原子类缺失导致比例失常。
  */
 const ITEMS = [
@@ -26,7 +27,7 @@ const shellStyle: React.CSSProperties = {
   WebkitBackdropFilter: "blur(20px)",
 };
 
-export default function TopNav() {
+export default function TopNav({ userType = "adult" }: { userType?: "adult" | "child" }) {
   const pathname = usePathname();
   const activeHref = pathname.startsWith("/report") ? "/history" : pathname;
 
@@ -69,14 +70,7 @@ export default function TopNav() {
           );
         })}
       </div>
-      <Link
-        href="/dashboard"
-        aria-label="宝宝爱睡觉"
-        title="宝宝爱睡觉"
-        style={{ ...shellStyle, width: BTN + 16, height: BTN + 16, display: "grid", placeItems: "center" }}
-      >
-        <span className="moon-mark" />
-      </Link>
+      <SleepAudio userType={userType} />
     </nav>
   );
 }

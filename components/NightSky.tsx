@@ -5,8 +5,9 @@ import * as THREE from "three";
 
 /**
  * 月息夜景:星空照片(body 背景)之上的眨眼星空层,带轻微指针视差。
+ * blur > 0 时照片层整体虚化(内容不再垫玻璃面板的页面用它保证可读性)。
  */
-export default function NightSky() {
+export default function NightSky({ blur = 0 }: { blur?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -115,9 +116,18 @@ export default function NightSky() {
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 -z-20 bg-cover bg-center"
-        style={{ backgroundImage: "url(/night-sky.jpg)" }}
+        style={{
+          backgroundImage: "url(/night-sky.jpg)",
+          // scale 撑出边缘,避免 blur 后四周露出照片外的黑边
+          filter: blur ? `blur(${blur}px)` : undefined,
+          transform: blur ? "scale(1.06)" : undefined,
+        }}
       />
-      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-[rgba(10,12,30,0.45)]" />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{ background: `rgba(10, 12, 30, ${blur ? 0.55 : 0.45})` }}
+      />
       <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 -z-10 h-full w-full" aria-hidden />
     </>
   );

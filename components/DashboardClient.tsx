@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import EnvGauge from "@/components/EnvGauge";
 import NightSky from "@/components/NightSky";
-import SleepAudio from "@/components/SleepAudio";
 import TopNav from "@/components/TopNav";
 import VoiceInput from "@/components/VoiceInput";
 
@@ -42,7 +42,9 @@ export default function DashboardClient({
   const [toast, setToast] = useState("");
   const [starting, setStarting] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activePrefItem = prefs.find((p) => p.id === activePref);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -103,10 +105,10 @@ export default function DashboardClient({
 
   return (
     <main className="relative min-h-screen overflow-x-hidden px-5">
-      <NightSky />
-      <TopNav />
+      <NightSky blur={12} />
+      <TopNav userType={userType} />
 
-      <div className="glass mx-auto mb-32 mt-28 w-full max-w-2xl rounded-3xl px-7 py-10 md:mt-32 md:px-10">
+      <div className="mx-auto mb-32 mt-28 w-full max-w-2xl px-2 py-10 md:mt-32 md:px-4">
         {/* 问候 */}
         <h1 className="serif text-[30px] font-semibold tracking-[0.04em]">晚上好,{nickname}</h1>
         <p className="mt-1.5 text-[12.5px] text-cream-dim">
@@ -118,35 +120,67 @@ export default function DashboardClient({
           <EnvGauge env={env} />
         </div>
 
-        {/* 睡眠方案 */}
+        {/* 睡眠方案:默认只露当前方案,右侧下拉换方案 */}
         <p className="mb-2 mt-9 text-[11px] tracking-[0.28em] text-cream-dim">睡眠方案</p>
-        <div>
-          {prefs.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => applyPref(p.id)}
-              className="flex w-full items-baseline justify-between border-b border-dashed border-hair px-0.5 py-3.5 text-left transition-colors hover:bg-white/[0.02]"
-            >
-              <span className="text-[14px]">
-                {activePref === p.id && <span className="mr-2 align-[3px] text-[8px] text-moon">●</span>}
-                {p.name}
-              </span>
-              <span className="text-[12px] text-cream-dim">
-                {p.tempMin}–{p.tempMax}℃ · {p.lightColorTemp === "warm" ? "暖光" : "冷光"} {p.lightBrightness}%
-                {activePref === p.id ? " · 使用中" : ""}
-              </span>
-            </button>
-          ))}
+        <div className="glass overflow-hidden rounded-2xl">
+          <button
+            onClick={() => setPrefsOpen((v) => !v)}
+            aria-expanded={prefsOpen}
+            className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-white/[0.03]"
+          >
+            <span className="text-[14px]">
+              <span className="mr-2 align-[3px] text-[8px] text-moon">●</span>
+              {activePrefItem ? activePrefItem.name : "选择方案"}
+            </span>
+            <span className="flex items-center gap-2.5 text-[12px] text-cream-dim">
+              {activePrefItem && (
+                <>
+                  {activePrefItem.tempMin}–{activePrefItem.tempMax}℃ ·{" "}
+                  {activePrefItem.lightColorTemp === "warm" ? "暖光" : "冷光"}{" "}
+                  {activePrefItem.lightBrightness}% · 使用中
+                </>
+              )}
+              <ChevronDown
+                size={15}
+                className={`transition-transform duration-200 ${prefsOpen ? "rotate-180" : ""}`}
+              />
+            </span>
+          </button>
+          <AnimatePresence initial={false}>
+            {prefsOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="overflow-hidden"
+              >
+                {prefs
+                  .filter((p) => p.id !== activePref)
+                  .map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setPrefsOpen(false);
+                        applyPref(p.id);
+                      }}
+                      className="flex w-full items-baseline justify-between border-t border-dashed border-hair px-5 py-3.5 text-left transition-colors hover:bg-white/[0.03]"
+                    >
+                      <span className="text-[14px]">{p.name}</span>
+                      <span className="text-[12px] text-cream-dim">
+                        {p.tempMin}–{p.tempMax}℃ · {p.lightColorTemp === "warm" ? "暖光" : "冷光"}{" "}
+                        {p.lightBrightness}%
+                      </span>
+                    </button>
+                  ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* 语音指令 */}
         <div className="mt-9">
           <VoiceInput />
-        </div>
-
-        {/* 助眠声音 */}
-        <div className="mt-9">
-          <SleepAudio userType={userType} />
         </div>
 
         {/* 开始睡眠 */}
