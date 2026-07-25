@@ -22,4 +22,22 @@ describe("matchHardcoded", () => {
   it("自然语言不被宽松关键词误命中", () => {
     expect(matchHardcoded("帮我把灯光调柔和一些")).toBeNull();
   });
+
+  it.each([
+    "请帮我打开温馨灯",
+    "麻烦你帮我开一下暖灯",
+    "开启暖光",
+  ])("%s 安全映射为低亮暖光", (text) => {
+    expect(matchHardcoded(text)).toEqual({
+      action: "setLight",
+      params: { on: true, brightness: 18, colorTemp: "warm" },
+    });
+  });
+
+  it("打开睡眠灯映射为更低亮度的暖夜灯", () => {
+    expect(matchHardcoded("请打开睡眠灯")).toEqual({
+      action: "setLight",
+      params: { on: true, brightness: 12, colorTemp: "warm" },
+    });
+  });
 });

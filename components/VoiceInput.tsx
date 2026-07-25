@@ -3,26 +3,34 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Keyboard, Mic, Mic2, Send } from "lucide-react";
+import { voiceSourceLabel } from "@/lib/voice/presentation";
+import {
+  bytesToBase64,
+  downsampleTo16Khz,
+  floatSamplesToPcm16,
+  mergeFloatChunks,
+} from "@/lib/voice/pcm";
 
 const QUICK_COMMANDS = ["关灯", "开夜灯", "调高温度"];
 
-/* 浏览器语音识别(Chrome/Safari 的 webkitSpeechRecognition;Firefox 系不支持,走文字回退) */
-interface SpeechRecognitionLike {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
-  onend: (() => void) | null;
-  onerror: (() => void) | null;
-  start(): void;
-  stop(): void;
-  abort(): void;
+interface RecordingSession {
+  stream: MediaStream;
+  context: AudioContext;
+  source: MediaStreamAudioSourceNode;
+  processor: ScriptProcessorNode;
+  sink: GainNode;
+  chunks: Float32Array[];
+  timer: ReturnType<typeof setTimeout>;
 }
 
-function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
-  if (typeof window === "undefined") return null;
-  const w = window as unknown as Record<string, unknown>;
-  return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as (new () => SpeechRecognitionLike) | null;
+function recordingErrorMessage(error: unknown) {
+  if (error instanceof DOMException && error.name === "NotAllowedError") {
+    return "请允许麦克风权限后再试";
+  }
+  if (error instanceof DOMException && error.name === "NotFoundError") {
+    return "没有检测到可用麦克风";
+  }
+  return "麦克风暂不可用，可改用文字输入";
 }
 
 /**
@@ -39,15 +47,23 @@ export default function VoiceInput({
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
+  const [sourceLabel, setSourceLabel] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState("");
   const [listening, setListening] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [textMode, setTextMode] = useState(false);
-  const [speechOk, setSpeechOk] = useState(false);
-  const recRef = useRef<SpeechRecognitionLike | null>(null);
+  const recordingRef = useRef<RecordingSession | null>(null);
 
-  useEffect(() => {
-    setSpeechOk(getSpeechRecognition() !== null);
-    return () => recRef.current?.abort();
-  }, []);
+  useEffect(
+    () => () => {
+      const recording = recordingRef.current;
+      if (!recording) return;
+      clearTimeout(recording.timer);
+      recording.stream.getTracks().forEach((track) => track.stop());
+      void recording.context.close();
+    },
+    [],
+  );
 
   async function submit(event?: FormEvent, commandText = text) {
     event?.preventDefault();
@@ -56,6 +72,7 @@ export default function VoiceInput({
 
     setPending(true);
     setMessage("");
+    setSourceLabel(null);
     try {
       const response = await fetch("/api/voice/parse", {
         method: "POST",
@@ -64,42 +81,115 @@ export default function VoiceInput({
       });
       const data = await response.json().catch(() => ({}));
       setMessage(response.ok ? data.message : data.error || "指令未成功，请再试一次");
+      setSourceLabel(response.ok ? voiceSourceLabel(data) : null);
       if (response.ok) setText("");
     } catch {
       setMessage("连接不稳定，请再试一次");
+      setSourceLabel(null);
     } finally {
       setPending(false);
     }
   }
 
-  function toggleListen() {
+  async function finishRecording() {
+    const recording = recordingRef.current;
+    if (!recording) return;
+    recordingRef.current = null;
+    clearTimeout(recording.timer);
+    setListening(false);
+    setTranscribing(true);
+
+    recording.stream.getTracks().forEach((track) => track.stop());
+    recording.source.disconnect();
+    recording.processor.disconnect();
+    recording.sink.disconnect();
+    await recording.context.close();
+
+    try {
+      const merged = mergeFloatChunks(recording.chunks);
+      if (merged.length < recording.context.sampleRate / 4) {
+        throw new Error("recording_too_short");
+      }
+      const pcm = floatSamplesToPcm16(
+        downsampleTo16Khz(merged, recording.context.sampleRate),
+      );
+      const response = await fetch("/api/voice/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audioData: bytesToBase64(pcm) }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || typeof data.transcript !== "string") {
+        throw new Error(data.error || "语音识别失败");
+      }
+      const finalTranscript = data.transcript.trim();
+      if (!finalTranscript) throw new Error("没有听清，请再试一次");
+      setTranscript(finalTranscript);
+      setTranscribing(false);
+      await submit(undefined, finalTranscript);
+    } catch (error) {
+      setMessage(
+        error instanceof Error && !error.message.includes("recording_too_short")
+          ? error.message
+          : "说话时间太短，请再试一次",
+      );
+      setSourceLabel(null);
+    } finally {
+      setTranscribing(false);
+    }
+  }
+
+  async function toggleListen() {
     if (listening) {
-      recRef.current?.stop();
+      await finishRecording();
       return;
     }
-    const SR = getSpeechRecognition();
-    if (!SR) {
+
+    if (!navigator.mediaDevices?.getUserMedia) {
       setTextMode(true);
-      setMessage("当前浏览器不支持语音识别，可直接输入文字");
+      setMessage("当前浏览器无法录音，可直接输入文字");
+      setSourceLabel(null);
       return;
     }
-    const rec = new SR();
-    rec.lang = "zh-CN";
-    rec.interimResults = false;
-    rec.continuous = false;
-    rec.onresult = (e) => {
-      const transcript = Array.from({ length: e.results.length }, (_, i) => e.results[i][0].transcript).join("");
-      if (transcript.trim()) submit(undefined, transcript);
-    };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => {
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+      });
+      const context = new AudioContext();
+      await context.resume();
+      const source = context.createMediaStreamSource(stream);
+      const processor = context.createScriptProcessor(4096, 1, 1);
+      const sink = context.createGain();
+      const chunks: Float32Array[] = [];
+      sink.gain.value = 0;
+      processor.onaudioprocess = (event) => {
+        chunks.push(event.inputBuffer.getChannelData(0).slice());
+      };
+      source.connect(processor);
+      processor.connect(sink);
+      sink.connect(context.destination);
+
+      const timer = setTimeout(() => void finishRecording(), 8_000);
+      recordingRef.current = {
+        stream,
+        context,
+        source,
+        processor,
+        sink,
+        chunks,
+        timer,
+      };
+      setMessage("");
+      setSourceLabel(null);
+      setTranscript("");
+      setListening(true);
+    } catch (error) {
       setListening(false);
-      setMessage("没有听清，再试一次");
-    };
-    recRef.current = rec;
-    setMessage("");
-    setListening(true);
-    rec.start();
+      setTextMode(true);
+      setMessage(recordingErrorMessage(error));
+      setSourceLabel(null);
+    }
   }
 
   return (
@@ -109,35 +199,67 @@ export default function VoiceInput({
         语音指令
       </div>
 
-      <button
-        type="button"
-        onClick={toggleListen}
-        disabled={pending}
-        aria-label={listening ? "停止聆听" : "开始说话"}
-        className={`relative grid h-[76px] w-[76px] place-items-center rounded-full border transition-colors disabled:opacity-50 ${
-          listening
-            ? "border-moon/70 bg-moon/20 text-moon"
-            : "glass text-cream-dim hover:border-moon/45 hover:text-cream"
-        }`}
-      >
-        {listening && (
-          <motion.span
-            aria-hidden
-            className="absolute inset-0 rounded-full border border-moon/50"
-            animate={{ scale: [1, 1.45], opacity: [0.6, 0] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
-          />
-        )}
-        <Mic size={26} strokeWidth={1.5} />
-      </button>
+      <div className="grid w-full max-w-md grid-cols-1 items-center justify-items-center gap-3 sm:grid-cols-[76px_minmax(0,1fr)] sm:justify-items-stretch sm:gap-5">
+        <button
+          type="button"
+          onClick={toggleListen}
+          disabled={pending || transcribing}
+          aria-label={listening ? "停止聆听" : "开始说话"}
+          className={`relative grid h-[76px] w-[76px] justify-self-center place-items-center rounded-full border transition-colors disabled:opacity-50 ${
+            listening
+              ? "border-moon/70 bg-moon/20 text-moon"
+              : "glass text-cream-dim hover:border-moon/45 hover:text-cream"
+          }`}
+        >
+          {listening && (
+            <motion.span
+              aria-hidden
+              className="absolute inset-0 rounded-full border border-moon/50"
+              animate={{ scale: [1, 1.45], opacity: [0.6, 0] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
+            />
+          )}
+          <Mic size={26} strokeWidth={1.5} />
+        </button>
 
-      <p aria-live="polite" className="mt-3.5 min-h-5 text-center text-[11.5px] leading-5 text-cream-dim">
-        {listening
-          ? "正在聆听，说出你的指令"
-          : pending
-            ? "正在执行"
-            : message || (speechOk ? "点击说话" : "点击展开文字输入")}
-      </p>
+        <div
+          aria-live="polite"
+          className="flex min-h-[76px] w-full items-center border-t border-hair pt-3 text-center sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0 sm:text-left"
+        >
+          <div className="min-w-0 w-full">
+            <p className="mb-1 text-[9.5px] tracking-[0.16em] text-cream-dim/60">
+              识别文字
+            </p>
+            <p className="break-words text-[13px] leading-6 text-cream">
+              {listening
+                ? "正在聆听…"
+                : transcribing
+                  ? "正在识别…"
+                  : transcript
+                    ? `“${transcript}”`
+                    : "尚未识别"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div aria-live="polite" className="mt-3.5 min-h-[42px] text-center">
+        {sourceLabel && !listening && !pending && (
+          <p className="mb-0.5 flex items-center justify-center gap-1.5 text-[10px] text-moon/80">
+            <span className="h-1 w-1 rounded-full bg-moon/70" aria-hidden />
+            {sourceLabel}
+          </p>
+        )}
+        <p className="text-[11.5px] leading-5 text-cream-dim">
+          {listening
+            ? "正在聆听，再次点击可结束"
+            : transcribing
+              ? "正在生成最终文字"
+              : pending
+                ? "正在执行"
+                : message || "单击开始说话，8 秒后自动结束"}
+        </p>
+      </div>
 
       {!compact && (
         <div className="mt-3 flex flex-wrap justify-center gap-2">

@@ -29,6 +29,24 @@ describe("validateParsedCommand", () => {
       }),
     ).toThrow("越界");
   });
+
+  it("灯光模型结果缺少亮度时使用安全默认值", () => {
+    expect(
+      validateParsedCommand({
+        action: "setLight",
+        params: { on: true, colorTemp: "warm" },
+      }),
+    ).toEqual({
+      action: "setLight",
+      params: { on: true, brightness: 18, colorTemp: "warm" },
+    });
+    expect(
+      validateParsedCommand({ action: "setLight", params: { on: false } }),
+    ).toEqual({
+      action: "setLight",
+      params: { on: false, brightness: 0 },
+    });
+  });
 });
 
 describe("parseWithStepfun", () => {
@@ -75,11 +93,13 @@ describe("parseWithStepfun", () => {
   it("超时后返回可识别错误", async () => {
     vi.useFakeTimers();
     vi.stubEnv("STEPFUN_API_KEY", "test-key");
+    let aborted = false;
     vi.stubGlobal(
       "fetch",
       vi.fn((_url, init?: RequestInit) =>
         new Promise((_resolve, reject) => {
           init?.signal?.addEventListener("abort", () => {
+            aborted = true;
             const error = new Error("aborted");
             error.name = "AbortError";
             reject(error);
@@ -88,11 +108,12 @@ describe("parseWithStepfun", () => {
       ),
     );
 
-    const promise = parseWithStepfun("把环境调舒服一点");
-    const assertion = expect(promise).rejects.toMatchObject({
+    const outcome = parseWithStepfun("把环境调舒服一点").catch((error) => error);
+    await vi.advanceTimersByTimeAsync(7_999);
+    expect(aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(outcome).resolves.toMatchObject({
       code: "timeout",
     } satisfies Partial<StepFunError>);
-    await vi.advanceTimersByTimeAsync(2_000);
-    await assertion;
   });
 });

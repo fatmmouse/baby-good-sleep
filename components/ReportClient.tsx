@@ -88,13 +88,14 @@ export default function ReportClient({
             label: s.stage,
           }));
     const totalW = weights.reduce((s, x) => s + x.w, 0) || 1;
-    let acc = 0;
     return weights
       .filter((x) => x.w > 0)
-      .map((x) => {
-        const x1 = spanStart + ((spanEnd - spanStart) * acc) / totalW;
-        acc += x.w;
-        const x2 = spanStart + ((spanEnd - spanStart) * acc) / totalW;
+      .map((x, index, visibleWeights) => {
+        const precedingWeight = visibleWeights
+          .slice(0, index)
+          .reduce((sum, item) => sum + item.w, 0);
+        const x1 = spanStart + ((spanEnd - spanStart) * precedingWeight) / totalW;
+        const x2 = spanStart + ((spanEnd - spanStart) * (precedingWeight + x.w)) / totalW;
         return { stage: x.stage, label: x.label, x1, x2 };
       });
   }, [summary.ringStages, spanStart, spanEnd]);
