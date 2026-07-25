@@ -93,7 +93,7 @@ export default function SleepingClient({
 
   return (
     <main className="relative flex min-h-screen flex-col items-center overflow-hidden">
-      <NightSky />
+      <NightSky blur={12} />
 
       {/* 自动调节提示 */}
       <div

@@ -45,7 +45,7 @@ export default function WelcomePage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden">
-      <NightSky />
+      <NightSky blur={12} />
 
       <div className="mx-auto flex min-h-screen w-full max-w-[460px] flex-col justify-center px-6 py-10">
         <motion.div

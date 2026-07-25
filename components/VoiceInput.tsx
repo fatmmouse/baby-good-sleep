@@ -25,6 +25,10 @@ function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
   return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as (new () => SpeechRecognitionLike) | null;
 }
 
+/**
+ * 圆形语音按键 + 按需展开的文字输入。
+ * compact(睡眠页)不显示快捷指令词条;仪表盘显示。
+ */
 export default function VoiceInput({
   sessionId,
   compact = false,
@@ -98,141 +102,99 @@ export default function VoiceInput({
     rec.start();
   }
 
-  /* 睡眠页:圆形语音按键为主,文字输入按需展开 */
-  if (compact) {
-    return (
-      <section className="flex w-full max-w-sm flex-col items-center">
-        <div className="mb-5 flex items-center justify-center gap-2 text-[11px] tracking-[0.26em] text-cream-dim">
-          <Mic2 size={14} strokeWidth={1.4} />
-          语音指令
-        </div>
-
-        <button
-          type="button"
-          onClick={toggleListen}
-          disabled={pending}
-          aria-label={listening ? "停止聆听" : "开始说话"}
-          className={`relative grid h-[76px] w-[76px] place-items-center rounded-full border transition-colors disabled:opacity-50 ${
-            listening
-              ? "border-moon/70 bg-moon/20 text-moon"
-              : "glass text-cream-dim hover:border-moon/45 hover:text-cream"
-          }`}
-        >
-          {listening && (
-            <motion.span
-              aria-hidden
-              className="absolute inset-0 rounded-full border border-moon/50"
-              animate={{ scale: [1, 1.45], opacity: [0.6, 0] }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
-            />
-          )}
-          <Mic size={26} strokeWidth={1.5} />
-        </button>
-
-        <p aria-live="polite" className="mt-3.5 min-h-5 text-center text-[11.5px] leading-5 text-cream-dim">
-          {listening
-            ? "正在聆听，说出你的指令"
-            : pending
-              ? "正在执行"
-              : message || (speechOk ? "点击说话" : "点击展开文字输入")}
-        </p>
-
-        <AnimatePresence initial={false}>
-          {textMode && (
-            <motion.form
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              onSubmit={(event) => submit(event)}
-              className="mt-3 w-full overflow-hidden"
-            >
-              <div className="glass flex items-center rounded-2xl p-1.5">
-                <input
-                  value={text}
-                  onChange={(event) => setText(event.target.value)}
-                  maxLength={200}
-                  placeholder="关灯，或者把房间调暖一点"
-                  aria-label="输入语音指令"
-                  className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[12.5px] text-cream outline-none placeholder:text-cream-dim/55"
-                />
-                <button
-                  type="submit"
-                  disabled={pending || !text.trim()}
-                  aria-label="执行指令"
-                  className="rounded-xl bg-moon/15 p-2.5 text-moon transition-colors hover:bg-moon/25 disabled:opacity-30"
-                >
-                  <Send size={15} strokeWidth={1.6} />
-                </button>
-              </div>
-            </motion.form>
-          )}
-        </AnimatePresence>
-
-        <button
-          type="button"
-          onClick={() => setTextMode((v) => !v)}
-          className="mt-3 flex items-center gap-1.5 text-[10.5px] tracking-[0.14em] text-cream-dim/70 transition-colors hover:text-cream"
-        >
-          <Keyboard size={12} strokeWidth={1.5} />
-          {textMode ? "收起文字输入" : "改用文字输入"}
-        </button>
-      </section>
-    );
-  }
-
-  /* 仪表盘:文字条框 + 快捷指令 */
   return (
-    <section>
-      <div className="mb-3 flex items-center gap-2 text-[11px] tracking-[0.26em] text-cream-dim">
+    <section className="flex w-full flex-col items-center">
+      <div className="mb-5 flex items-center justify-center gap-2 text-[11px] tracking-[0.26em] text-cream-dim">
         <Mic2 size={14} strokeWidth={1.4} />
         语音指令
-        <span className="tracking-normal opacity-60">· 可直接输入演示</span>
       </div>
-      <form
-        onSubmit={(event) => submit(event)}
-        className="glass flex items-center rounded-2xl p-1.5"
+
+      <button
+        type="button"
+        onClick={toggleListen}
+        disabled={pending}
+        aria-label={listening ? "停止聆听" : "开始说话"}
+        className={`relative grid h-[76px] w-[76px] place-items-center rounded-full border transition-colors disabled:opacity-50 ${
+          listening
+            ? "border-moon/70 bg-moon/20 text-moon"
+            : "glass text-cream-dim hover:border-moon/45 hover:text-cream"
+        }`}
       >
-        <input
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          maxLength={200}
-          placeholder="关灯，或者把房间调暖一点"
-          aria-label="输入语音指令"
-          className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[12.5px] text-cream outline-none placeholder:text-cream-dim/55"
-        />
-        <button
-          type="submit"
-          disabled={pending || !text.trim()}
-          aria-label="执行指令"
-          className="rounded-xl bg-moon/15 p-2.5 text-moon transition-colors hover:bg-moon/25 disabled:opacity-30"
-        >
-          <Send size={15} strokeWidth={1.6} />
-        </button>
-      </form>
-      <div className="mt-2.5 flex flex-wrap gap-2">
-        {QUICK_COMMANDS.map((command) => (
-          <button
-            key={command}
-            type="button"
-            disabled={pending}
-            onClick={() => submit(undefined, command)}
-            className="rounded-full border border-hair px-3 py-1.5 text-[10.5px] text-cream-dim transition-colors hover:border-moon/35 hover:text-cream disabled:opacity-40"
-          >
-            {command}
-          </button>
-        ))}
-      </div>
-      {message && (
-        <motion.p
-          initial={{ opacity: 0, y: -3 }}
-          animate={{ opacity: 1, y: 0 }}
-          aria-live="polite"
-          className="mt-2.5 text-[11.5px] leading-5 text-cream-dim"
-        >
-          {message}
-        </motion.p>
+        {listening && (
+          <motion.span
+            aria-hidden
+            className="absolute inset-0 rounded-full border border-moon/50"
+            animate={{ scale: [1, 1.45], opacity: [0.6, 0] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
+          />
+        )}
+        <Mic size={26} strokeWidth={1.5} />
+      </button>
+
+      <p aria-live="polite" className="mt-3.5 min-h-5 text-center text-[11.5px] leading-5 text-cream-dim">
+        {listening
+          ? "正在聆听，说出你的指令"
+          : pending
+            ? "正在执行"
+            : message || (speechOk ? "点击说话" : "点击展开文字输入")}
+      </p>
+
+      {!compact && (
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          {QUICK_COMMANDS.map((command) => (
+            <button
+              key={command}
+              type="button"
+              disabled={pending}
+              onClick={() => submit(undefined, command)}
+              className="rounded-full border border-hair px-3.5 py-1.5 text-[10.5px] text-cream-dim transition-colors hover:border-moon/35 hover:text-cream disabled:opacity-40"
+            >
+              {command}
+            </button>
+          ))}
+        </div>
       )}
+
+      <AnimatePresence initial={false}>
+        {textMode && (
+          <motion.form
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            onSubmit={(event) => submit(event)}
+            className="mt-3 w-full max-w-sm overflow-hidden"
+          >
+            <div className="glass flex items-center rounded-2xl p-1.5">
+              <input
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+                maxLength={200}
+                placeholder="关灯，或者把房间调暖一点"
+                aria-label="输入语音指令"
+                className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[12.5px] text-cream outline-none placeholder:text-cream-dim/55"
+              />
+              <button
+                type="submit"
+                disabled={pending || !text.trim()}
+                aria-label="执行指令"
+                className="rounded-xl bg-moon/15 p-2.5 text-moon transition-colors hover:bg-moon/25 disabled:opacity-30"
+              >
+                <Send size={15} strokeWidth={1.6} />
+              </button>
+            </div>
+          </motion.form>
+        )}
+      </AnimatePresence>
+
+      <button
+        type="button"
+        onClick={() => setTextMode((v) => !v)}
+        className="mt-3 flex items-center gap-1.5 text-[10.5px] tracking-[0.14em] text-cream-dim/70 transition-colors hover:text-cream"
+      >
+        <Keyboard size={12} strokeWidth={1.5} />
+        {textMode ? "收起文字输入" : "改用文字输入"}
+      </button>
     </section>
   );
 }

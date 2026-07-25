@@ -132,7 +132,7 @@ export default function ReportClient({
 
   return (
     <main className="relative min-h-screen overflow-x-hidden px-5">
-      <NightSky />
+      <NightSky blur={12} />
       <TopNav />
 
       <div className="glass mx-auto mb-24 mt-28 w-full max-w-2xl rounded-3xl px-7 py-10 md:mt-32 md:px-10">
