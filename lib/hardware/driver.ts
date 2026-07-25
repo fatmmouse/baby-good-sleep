@@ -2,6 +2,9 @@ export interface EnvReading {
   tempC: number;
   humidityPct: number;
   lightLux: number;
+  stale?: boolean;
+  lightSource?: "measured" | "estimated" | "simulated";
+  sampledAt?: string;
 }
 
 export interface LightCmd {
