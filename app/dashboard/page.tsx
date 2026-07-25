@@ -5,13 +5,13 @@ import DashboardClient from "@/components/DashboardClient";
 
 export default async function DashboardPage() {
   const uid = await getUserId();
-  if (!uid) redirect("/");
+  if (!uid) redirect("/welcome");
 
   const user = await db.user.findUnique({
     where: { id: uid },
     include: { prefs: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] } },
   });
-  if (!user) redirect("/");
+  if (!user) redirect("/welcome");
 
   const activeSession = await db.sleepSession.findFirst({
     where: { userId: uid, status: "active" },

@@ -5,7 +5,7 @@ import SleepingClient from "@/components/SleepingClient";
 
 export default async function SleepingPage() {
   const uid = await getUserId();
-  if (!uid) redirect("/");
+  if (!uid) redirect("/welcome");
 
   const session = await db.sleepSession.findFirst({
     where: { userId: uid, status: "active" },
