@@ -4,6 +4,10 @@ import { FormEvent, useEffect, useRef, useState, useSyncExternalStore } from "re
 import { AnimatePresence, motion } from "framer-motion";
 import { Keyboard, Mic, Mic2, Send } from "lucide-react";
 import { voiceSourceLabel } from "@/lib/voice/presentation";
+import {
+  finalSpeechTranscript,
+  type SpeechRecognitionResultLike,
+} from "@/lib/voice/transcript";
 
 const QUICK_COMMANDS = ["关灯", "开夜灯", "调高温度"];
 
@@ -12,7 +16,7 @@ interface SpeechRecognitionLike {
   lang: string;
   interimResults: boolean;
   continuous: boolean;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
+  onresult: ((e: { results: ArrayLike<SpeechRecognitionResultLike> }) => void) | null;
   onend: (() => void) | null;
   onerror: (() => void) | null;
   start(): void;
@@ -53,6 +57,7 @@ export default function VoiceInput({
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [sourceLabel, setSourceLabel] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState("");
   const [listening, setListening] = useState(false);
   const [textMode, setTextMode] = useState(false);
   const speechOk = useSyncExternalStore(
@@ -107,8 +112,9 @@ export default function VoiceInput({
     rec.interimResults = false;
     rec.continuous = false;
     rec.onresult = (e) => {
-      const transcript = Array.from({ length: e.results.length }, (_, i) => e.results[i][0].transcript).join("");
-      if (transcript.trim()) submit(undefined, transcript);
+      const finalTranscript = finalSpeechTranscript(e.results);
+      setTranscript(finalTranscript);
+      if (finalTranscript) submit(undefined, finalTranscript);
     };
     rec.onend = () => setListening(false);
     rec.onerror = () => {
@@ -119,6 +125,7 @@ export default function VoiceInput({
     recRef.current = rec;
     setMessage("");
     setSourceLabel(null);
+    setTranscript("");
     setListening(true);
     rec.start();
   }
@@ -130,27 +137,47 @@ export default function VoiceInput({
         语音指令
       </div>
 
-      <button
-        type="button"
-        onClick={toggleListen}
-        disabled={pending}
-        aria-label={listening ? "停止聆听" : "开始说话"}
-        className={`relative grid h-[76px] w-[76px] place-items-center rounded-full border transition-colors disabled:opacity-50 ${
-          listening
-            ? "border-moon/70 bg-moon/20 text-moon"
-            : "glass text-cream-dim hover:border-moon/45 hover:text-cream"
-        }`}
-      >
-        {listening && (
-          <motion.span
-            aria-hidden
-            className="absolute inset-0 rounded-full border border-moon/50"
-            animate={{ scale: [1, 1.45], opacity: [0.6, 0] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
-          />
-        )}
-        <Mic size={26} strokeWidth={1.5} />
-      </button>
+      <div className="grid w-full max-w-md grid-cols-1 items-center justify-items-center gap-3 sm:grid-cols-[76px_minmax(0,1fr)] sm:justify-items-stretch sm:gap-5">
+        <button
+          type="button"
+          onClick={toggleListen}
+          disabled={pending}
+          aria-label={listening ? "停止聆听" : "开始说话"}
+          className={`relative grid h-[76px] w-[76px] justify-self-center place-items-center rounded-full border transition-colors disabled:opacity-50 ${
+            listening
+              ? "border-moon/70 bg-moon/20 text-moon"
+              : "glass text-cream-dim hover:border-moon/45 hover:text-cream"
+          }`}
+        >
+          {listening && (
+            <motion.span
+              aria-hidden
+              className="absolute inset-0 rounded-full border border-moon/50"
+              animate={{ scale: [1, 1.45], opacity: [0.6, 0] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
+            />
+          )}
+          <Mic size={26} strokeWidth={1.5} />
+        </button>
+
+        <div
+          aria-live="polite"
+          className="flex min-h-[76px] w-full items-center border-t border-hair pt-3 text-center sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0 sm:text-left"
+        >
+          <div className="min-w-0 w-full">
+            <p className="mb-1 text-[9.5px] tracking-[0.16em] text-cream-dim/60">
+              识别文字
+            </p>
+            <p className="break-words text-[13px] leading-6 text-cream">
+              {listening
+                ? "正在聆听…"
+                : transcript
+                  ? `“${transcript}”`
+                  : "尚未识别"}
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div aria-live="polite" className="mt-3.5 min-h-[42px] text-center">
         {sourceLabel && !listening && !pending && (
