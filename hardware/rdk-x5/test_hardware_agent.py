@@ -1,6 +1,7 @@
 import json
 import sys
 import threading
+import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -136,6 +137,29 @@ class HardwareControllerTest(unittest.TestCase):
 
         self.assertEqual(reading["lightLux"], 122.0)
         self.assertEqual(reading["lightSource"], "estimated")
+
+    def test_slow_sensor_read_does_not_block_light_control(self):
+        sensor_started = threading.Event()
+        release_sensor = threading.Event()
+
+        def slow_sensor():
+            sensor_started.set()
+            release_sensor.wait(timeout=2)
+            return SENSOR_READING
+
+        controller = self.make_controller(slow_sensor)
+        reader = threading.Thread(target=controller.read_environment)
+        reader.start()
+        self.assertTrue(sensor_started.wait(timeout=1))
+
+        started_at = time.monotonic()
+        result = controller.set_light(True, 12, "warm")
+        elapsed = time.monotonic() - started_at
+
+        release_sensor.set()
+        reader.join(timeout=2)
+        self.assertLess(elapsed, 0.2)
+        self.assertEqual(result["brightness"], 12.0)
 
 
 class HardwareHttpTest(unittest.TestCase):

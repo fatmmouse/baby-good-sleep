@@ -107,6 +107,7 @@ class HardwareController:
         self._gpio = gpio_module
         self._sensor_reader = sensor_reader
         self._lock = threading.RLock()
+        self._sensor_lock = threading.Lock()
         self._last_sensor = None
         self._last_sensor_error = None
         self._light = {
@@ -141,7 +142,7 @@ class HardwareController:
             return dict(self._light)
 
     def read_environment(self):
-        with self._lock:
+        with self._sensor_lock:
             try:
                 raw = self._sensor_reader()
                 temp_c = float(raw["tempC"])
@@ -150,22 +151,28 @@ class HardwareController:
                     raise ValueError("sensor returned non-finite values")
                 if not 0 <= humidity_pct <= 100 or not -40 <= temp_c <= 80:
                     raise ValueError("sensor values are out of range")
-                self._last_sensor = {
-                    "tempC": temp_c,
-                    "humidityPct": humidity_pct,
-                    "sampledAt": utc_now(),
-                }
-                self._last_sensor_error = None
-                stale = False
+                with self._lock:
+                    self._last_sensor = {
+                        "tempC": temp_c,
+                        "humidityPct": humidity_pct,
+                        "sampledAt": utc_now(),
+                    }
+                    self._last_sensor_error = None
+                    sensor = dict(self._last_sensor)
+                    stale = False
             except Exception as error:
-                self._last_sensor_error = str(error)
-                if self._last_sensor is None:
-                    raise SensorUnavailableError(str(error)) from error
-                stale = True
+                with self._lock:
+                    self._last_sensor_error = str(error)
+                    if self._last_sensor is None:
+                        raise SensorUnavailableError(str(error)) from error
+                    sensor = dict(self._last_sensor)
+                    stale = True
 
-            light_lux = 2.0 + self._light["brightness"] * 10.0 if self._light["on"] else 2.0
+        with self._lock:
+            light = dict(self._light)
+            light_lux = 2.0 + light["brightness"] * 10.0 if light["on"] else 2.0
             return {
-                **self._last_sensor,
+                **sensor,
                 "lightLux": light_lux,
                 "lightSource": "estimated",
                 "stale": stale,
