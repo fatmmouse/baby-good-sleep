@@ -5,7 +5,7 @@ import { getUserId } from "@/lib/session-cookie";
 
 export default async function HistoryPage() {
   const uid = await getUserId();
-  if (!uid) redirect("/");
+  if (!uid) redirect("/welcome");
 
   const [user, sessions, commands] = await Promise.all([
     db.user.findUnique({ where: { id: uid }, select: { nickname: true } }),
@@ -21,7 +21,7 @@ export default async function HistoryPage() {
     }),
   ]);
 
-  if (!user) redirect("/");
+  if (!user) redirect("/welcome");
 
   return (
     <HistoryClient

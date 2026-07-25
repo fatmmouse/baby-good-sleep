@@ -5,7 +5,7 @@ import { getUserId } from "@/lib/session-cookie";
 
 export default async function PreferencesPage() {
   const uid = await getUserId();
-  if (!uid) redirect("/");
+  if (!uid) redirect("/welcome");
 
   const user = await db.user.findUnique({
     where: { id: uid },
@@ -13,7 +13,7 @@ export default async function PreferencesPage() {
       prefs: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] },
     },
   });
-  if (!user) redirect("/");
+  if (!user) redirect("/welcome");
 
   return (
     <PreferencesClient

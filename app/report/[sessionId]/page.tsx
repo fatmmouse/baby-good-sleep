@@ -11,7 +11,7 @@ export default async function ReportPage({
 }) {
   const { sessionId } = await params;
   const uid = await getUserId();
-  if (!uid) redirect("/");
+  if (!uid) redirect("/welcome");
 
   const session = await db.sleepSession.findUnique({
     where: { id: sessionId },
