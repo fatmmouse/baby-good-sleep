@@ -116,10 +116,10 @@ export default function HistoryClient({
 
   return (
     <main className="relative min-h-screen overflow-x-hidden px-5">
-      <NightSky />
+      <NightSky blur={12} />
       <TopNav />
 
-      <div className="glass relative z-10 mx-auto mb-24 mt-28 w-full max-w-4xl rounded-3xl px-6 py-10 md:mt-32 md:px-10">
+      <div className="relative z-10 mx-auto mb-24 mt-28 w-full max-w-4xl px-2 py-10 md:mt-32 md:px-4">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
