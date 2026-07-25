@@ -32,6 +32,18 @@ export async function readHardwareSnapshot(
     env = null;
   }
 
+  if (env === null) {
+    return {
+      env: null,
+      health: {
+        ok: false,
+        driver: driver instanceof SimDriver ? "sim" : "rdk-x5",
+      },
+      light: null,
+      targetTempC: null,
+    };
+  }
+
   return {
     env,
     health: await safeHealth(driver),

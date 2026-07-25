@@ -2,17 +2,15 @@ import { describe, expect, it } from "vitest";
 import { RdkX5Driver } from "./rdk-x5";
 import { readHardwareSnapshot } from "./snapshot";
 
-function offlineFetch(): typeof fetch {
-  return (async () => {
-    throw new TypeError("offline");
-  }) as typeof fetch;
-}
-
 describe("readHardwareSnapshot", () => {
   it("returns a stable empty environment when real hardware is cold-start offline", async () => {
+    let requests = 0;
     const driver = new RdkX5Driver({
       baseUrl: "http://rdk:8765",
-      fetchFn: offlineFetch(),
+      fetchFn: (async () => {
+        requests++;
+        throw new TypeError("offline");
+      }) as typeof fetch,
     });
 
     await expect(readHardwareSnapshot(driver)).resolves.toEqual({
@@ -21,6 +19,7 @@ describe("readHardwareSnapshot", () => {
       light: null,
       targetTempC: null,
     });
+    expect(requests).toBe(1);
   });
 
   it("keeps an estimated stale reading visible with unhealthy hardware status", async () => {
